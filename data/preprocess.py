@@ -25,7 +25,8 @@ The following 4 function is used to preprocess the drug data. We download the dr
 folder = ""
 
 def load_drug_list():
-    filename = folder + "Drug_listTue Oct 31 03_03_04 2017.csv"
+    #filename = folder + "Drug_listTue Oct 31 03_03_04 2017.csv"
+    filename = folder + "Druglist.csv" # input
     csvfile = open(filename, "rb")
     reader = csv.reader(csvfile)
     next(reader, None)
@@ -65,7 +66,7 @@ def cid_from_other_source():
     some drug can not be found in pychem, so I try to find some cid manually.
     the small_molecule.csv is downloaded from http://lincs.hms.harvard.edu/db/sm/
     """
-    f = open(folder + "small_molecule.csv", 'r')
+    f = open(folder + "small_molecule.csv", 'r') # input
     reader = csv.reader(f)
     reader.next()
     cid_dict = {}
@@ -174,7 +175,7 @@ def save_drug_smiles_onehot():
     print drug_cids.shape
     print canonical.shape
 
-    np.save(folder + "drug_onehot_smiles.npy", save_dict)
+    np.save(folder + "drug_onehot_smiles.npy", save_dict) # final output
     print "finish saving drug onehot smiles data:"
     return drug_names, drug_cids, canonical
 
@@ -183,7 +184,8 @@ The following part will prepare the mutation features for the cell.
 """
 
 def save_cell_mut_matrix():
-    f = open(folder + "PANCANCER_Genetic_feature_Tue Oct 31 03_00_35 2017.csv")
+    #f = open(folder + "PANCANCER_Genetic_feature_Tue Oct 31 03_00_35 2017.csv")
+    f = open(folder + "PANCANCER_Genetic_feature.csv") # input
     reader = csv.reader(f)
     reader.next()
     cell_dict = {}
@@ -246,7 +248,7 @@ def save_cell_mut_matrix():
     print cell_names.shape
     print mut_names.shape
     print matrix.shape
-    np.save(folder + "cell_mut_matrix.npy", save_dict)
+    np.save(folder + "cell_mut_matrix.npy", save_dict) # final output
     print "finish saving cell mut data:"
 
     return matrix, cell_names, mut_names
@@ -259,7 +261,8 @@ This part is used to extract the drug - cell interaction strength. it contains I
 """
 
 def save_drug_cell_matrix():
-    f = open(folder + "PANCANCER_IC_Tue Oct 31 02_59_53 2017.csv")
+    #f = open(folder + "PANCANCER_IC_Tue Oct 31 02_59_53 2017.csv")
+    f = open(folder + "PANCANCER_IC.csv") # input
     reader = csv.reader(f)
     reader.next()
 
@@ -329,8 +332,14 @@ def save_drug_cell_matrix():
     print sub_matrix.shape
     print matrix.shape
    
-    np.save(folder + "drug_cell_interaction.npy", save_dict)
+    np.save(folder + "drug_cell_interaction.npy", save_dict) # final output
     print "finish saving drug cell interaction data:"
     return sub_matrix
     
+#print("Getting CIDs for drugs...")
+#write_drug_cid()
+#cid_from_other_source()
+#print("Downloading SMILES...")
+#download_smiles()
+print("Extract drug-cell interaction strength...")
 save_drug_cell_matrix()
