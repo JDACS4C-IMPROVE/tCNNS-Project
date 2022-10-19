@@ -58,9 +58,10 @@ class Batch():
         else:
             return False
 
-drug_smile_dict = np.load("data/drug_onehot_smiles.npy", encoding="latin1").item()
-drug_cell_dict = np.load("data/drug_cell_interaction.npy", encoding="latin1").item()
-cell_mut_dict = np.load("data/cell_mut_matrix.npy", encoding="latin1").item()
+# adding allow_pickle=True
+drug_smile_dict = np.load("data/drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
+drug_cell_dict = np.load("data/drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
+cell_mut_dict = np.load("data/cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
 
 c_chars = drug_smile_dict["c_chars"]
 drug_names = drug_smile_dict["drug_names"]
