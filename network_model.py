@@ -110,7 +110,8 @@ rmsr = tf.sqrt(loss)
 
 train, valid, test = load_data(100, ['IC50'])
 saver = tf.train.Saver(var_list=tf.trainable_variables())
-output_file = open("result_all/result_all.txt", "a")
+#output_file = open("result_all/result_all.txt", "a")
+output_file = open("result_all/result_all.txt", "a+")
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
