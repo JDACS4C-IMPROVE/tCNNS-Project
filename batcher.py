@@ -58,7 +58,6 @@ class Batch():
         else:
             return False
 
-# adding allow_pickle=True
 drug_smile_dict = np.load("data/drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
 drug_cell_dict = np.load("data/drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
 cell_mut_dict = np.load("data/cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
