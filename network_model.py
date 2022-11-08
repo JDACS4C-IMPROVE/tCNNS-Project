@@ -110,8 +110,19 @@ rmsr = tf.sqrt(loss)
 
 train, valid, test = load_data(100, ['IC50'])
 saver = tf.train.Saver(var_list=tf.trainable_variables())
-#output_file = open("result_all/result_all.txt", "a")
-output_file = open("result_all/result_all.txt", "a+")
+
+output_dir = "result_all"
+output_file_name = "result_all.txt"
+
+if output_dir:
+    # if output_dir directory doesn't exist, create new one
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print("A new directory has been created.")
+    output_file = open(os.path.join(output_dir,output_file_name), "a+")
+else:
+    output_file = open(os.path.join(output_dir,output_file_name), "a+")
+
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
