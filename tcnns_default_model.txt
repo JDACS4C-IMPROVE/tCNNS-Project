@@ -15,6 +15,7 @@ dropout = 0.5  #keep_prob
 epochs = 10  #count
 min_loss = 100
 length_smiles = 188
+num_chars_smiles = 28
 num_cell_features = 735
 bias_constant = 0.1
 std_dev = 0.1 

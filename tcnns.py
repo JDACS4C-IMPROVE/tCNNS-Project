@@ -82,6 +82,10 @@ additional_definitions = [
         "type": int, 
         "help": "convolution stride",
     },
+    {   "name": "num_chars_smiles",
+        "type": int, 
+        "help": "number of unique symbols in SMILES",
+    },
     
 ]
 
