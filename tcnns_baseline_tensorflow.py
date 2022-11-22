@@ -7,15 +7,15 @@ import tcnns
 file_path = os.path.dirname(os.path.realpath(__file__))
 
 def weight_variable(shape):
-    initial = tf.truncated_normal(shape, stddev=0.1)
+    initial = tf.truncated_normal(shape, stddev=0.1) # added
     return tf.Variable(initial)
 
 def bias_variable(shape):
-    initial = tf.constant(0.1, shape=shape)
-    return tf.Variable(initial)
+    initial = tf.constant(0.1, shape=shape) # added
+    return tf.Variable(initial) 
 
 def conv1d(x, W):
-    return tf.nn.conv1d(x, W, 1, padding='SAME')
+    return tf.nn.conv1d(x, W, 1, padding='SAME') # added
 
 def max_pool_1d(x, kernel_shape, strides, padding='SAME'):
     return tf.nn.pool(x, kernel_shape, 'MAX', padding=padding, strides=strides)
@@ -83,28 +83,28 @@ def run(args):
     np.random.shuffle(all_positions)
 
     # define model
-    drug = tf.placeholder(tf.float32, shape=[None, 188, 28])
-    cell = tf.placeholder(tf.float32, shape=[None, 735])
+    drug = tf.placeholder(tf.float32, shape=[None, 188, 28]) # added
+    cell = tf.placeholder(tf.float32, shape=[None, 735]) # added
     scores = tf.placeholder(tf.float32, shape=[None, 1])
     keep_prob = tf.placeholder(tf.float32)
 
     drug_conv1_out = 40 # added
     drug_conv1_pool = 3 # added
-    drug_conv1_w = weight_variable([7, 28, drug_conv1_out])
+    drug_conv1_w = weight_variable([7, 28, drug_conv1_out]) # added 7
     drug_conv1_b = bias_variable([drug_conv1_out])
     drug_conv1_h = tf.nn.relu(conv1d(drug, drug_conv1_w) + drug_conv1_b)
     drug_conv1_p = max_pool_1d(drug_conv1_h, [drug_conv1_pool], [drug_conv1_pool])
 
     drug_conv2_out = 80 # added
     drug_conv2_pool = 3 # added
-    drug_conv2_w = weight_variable([7, drug_conv1_out, drug_conv2_out])
+    drug_conv2_w = weight_variable([7, drug_conv1_out, drug_conv2_out]) # added 7
     drug_conv2_b = bias_variable([drug_conv2_out])
     drug_conv2_h = tf.nn.relu(conv1d(drug_conv1_p, drug_conv2_w) + drug_conv2_b)
     drug_conv2_p = max_pool_1d(drug_conv2_h, [drug_conv2_pool], [drug_conv2_pool])
 
     drug_conv3_out = 60 # added
     drug_conv3_pool = 3 # added
-    drug_conv3_w = weight_variable([7, drug_conv2_out, drug_conv3_out])
+    drug_conv3_w = weight_variable([7, drug_conv2_out, drug_conv3_out]) # added 7
     drug_conv3_b = bias_variable([drug_conv3_out])
     drug_conv3_h = tf.nn.relu(conv1d(drug_conv2_p, drug_conv3_w) + drug_conv3_b)
     drug_conv3_p = max_pool_1d(drug_conv3_h, [drug_conv3_pool], [drug_conv3_pool])
@@ -112,21 +112,21 @@ def run(args):
     cell_conv1_out = 40 # added
     cell_conv1_pool = 3 # added
     cell_tensor = tf.expand_dims(cell, 2)
-    cell_conv1_w = weight_variable([7, 1, cell_conv1_out])
+    cell_conv1_w = weight_variable([7, 1, cell_conv1_out]) # added 7
     cell_conv1_b = weight_variable([cell_conv1_out])
     cell_conv1_h = tf.nn.relu(conv1d(cell_tensor, cell_conv1_w) + cell_conv1_b)
     cell_conv1_p = max_pool_1d(cell_conv1_h, [cell_conv1_pool], [cell_conv1_pool])
 
     cell_conv2_out = 80 # added
     cell_conv2_pool = 3 # added
-    cell_conv2_w = weight_variable([7, cell_conv1_out, cell_conv2_out])
+    cell_conv2_w = weight_variable([7, cell_conv1_out, cell_conv2_out]) # added 7
     cell_conv2_b = bias_variable([cell_conv2_out])
     cell_conv2_h = tf.nn.relu(conv1d(cell_conv1_p, cell_conv2_w) + cell_conv2_b)
     cell_conv2_p = max_pool_1d(cell_conv2_h, [cell_conv2_pool], [cell_conv2_pool])
 
     cell_conv3_out = 60 # added
     cell_conv3_pool = 3 # added
-    cell_conv3_w = weight_variable([7, cell_conv2_out, cell_conv3_out])
+    cell_conv3_w = weight_variable([7, cell_conv2_out, cell_conv3_out]) # added 7
     cell_conv3_b = bias_variable([cell_conv3_out])
     cell_conv3_h = tf.nn.relu(conv1d(cell_conv2_p, cell_conv3_w) + cell_conv3_b)
     cell_conv3_p = max_pool_1d(cell_conv3_h, [cell_conv3_pool], [cell_conv3_pool])
@@ -153,7 +153,7 @@ def run(args):
     # define loss
     loss = tf.losses.mean_squared_error(scores, y_conv)
     # define optimizer
-    train_step = tf.train.AdamOptimizer(1e-4).minimize(loss)
+    train_step = tf.train.AdamOptimizer(1e-4).minimize(loss) # added learning rate
 
     # define metrics
     r_square = R2(scores, y_conv)
@@ -174,7 +174,7 @@ def run(args):
         test_values, test_drugs, test_cells = test.whole_batch()
         valid_values, valid_drugs, valid_cells = valid.whole_batch()
         epoch = 0
-        min_loss = 100
+        min_loss = 100 # added
         count = 0
         while count < 10:
             train.reset()
