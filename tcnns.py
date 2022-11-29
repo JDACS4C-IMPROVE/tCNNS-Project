@@ -75,14 +75,14 @@ required = [
     "dropout",
     "learning_rate",
     "output_dir",
-    "pool"
+    "pool",
     "ckpt_directory"
 ]
 
 # initialize class
 class tCNNS(candle.Benchmark):
     def set_locals(self):
-	    """Functionality to set variables specific for the benchmark
+        """Functionality to set variables specific for the benchmark
         - required: set of required parameters for the benchmark.
         - additional_definitions: list of dictionaries describing the additional parameters for the benchmark.
         """
