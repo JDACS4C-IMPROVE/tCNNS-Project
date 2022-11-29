@@ -1,12 +1,13 @@
 import os
 import csv
-from pubchempy import *
+#from pubchempy import *
+from functools import reduce
 import numpy as np
 import numbers
 import h5py
 import math
-
-
+#import candle
+from pathlib import Path
 
 
 def is_not_float(string_list):
@@ -22,12 +23,12 @@ The following 4 function is used to preprocess the drug data. We download the dr
 """
 
 #folder = "data/"
-folder = ""
 
 def load_drug_list():
     #filename = folder + "Drug_listTue Oct 31 03_03_04 2017.csv"
-    filename = folder + "Druglist.csv" # input
-    csvfile = open(filename, "rb")
+    filename = folder + "Druglist.csv"
+    #csvfile = open(filename, "rb")
+    csvfile = open(filename)
     reader = csv.reader(csvfile)
     next(reader, None)
     drugs = []
@@ -52,7 +53,7 @@ def write_drug_cid():
             continue
         else:
             cid = c[0].cid
-        print drug, cid
+        print (drug, cid)
         drug_id.append(cid)
         row = [drug, str(cid)]
         wr.writerow(row)
@@ -66,7 +67,7 @@ def cid_from_other_source():
     some drug can not be found in pychem, so I try to find some cid manually.
     the small_molecule.csv is downloaded from http://lincs.hms.harvard.edu/db/sm/
     """
-    f = open(folder + "small_molecule.csv", 'r') # input
+    f = open(folder + "small_molecule.csv", 'r')
     reader = csv.reader(f)
     reader.next()
     cid_dict = {}
@@ -127,7 +128,8 @@ def string2smiles_list(string):
 
 def onehot_encode(char_list, smiles_string, length):
     encode_row = lambda char: map(int, [c == char for c in smiles_string])
-    ans = np.array(map(encode_row, char_list))
+    #ans = np.array(map(encode_row, char_list))
+    ans = np.array([list(x) for x in list(map(encode_row, char_list))])
     if ans.shape[1] < length:
         residual = np.zeros((len(char_list), length - ans.shape[1]), dtype=np.int8)
         ans = np.concatenate((ans, residual), axis=1)
@@ -140,7 +142,7 @@ def smiles_to_onehot(smiles, c_chars, c_length):
     return c_ndarray
 
 def load_as_ndarray():
-    reader = csv.reader(open(folder + "drug_smiles.csv"))
+    reader = csv.reader(open(str(datadir) + "/" + "drug_smiles.csv"))
     next(reader, None)
     smiles = np.array(list(reader), dtype=np.str)
     return smiles
@@ -170,13 +172,13 @@ def save_drug_smiles_onehot():
     save_dict["canonical"] = canonical
     save_dict["c_chars"] = c_chars
 
-    print "drug onehot smiles data:"
-    print drug_names.shape
-    print drug_cids.shape
-    print canonical.shape
+    print("drug onehot smiles data:")
+    print(drug_names.shape)
+    print(drug_cids.shape)
+    print(canonical.shape)
 
-    np.save(folder + "drug_onehot_smiles.npy", save_dict) # final output
-    print "finish saving drug onehot smiles data:"
+    np.save(outdir + "/" + "drug_onehot_smiles.npy", save_dict)
+    print("finish saving drug onehot smiles data:")
     return drug_names, drug_cids, canonical
 
 """
@@ -185,9 +187,10 @@ The following part will prepare the mutation features for the cell.
 
 def save_cell_mut_matrix():
     #f = open(folder + "PANCANCER_Genetic_feature_Tue Oct 31 03_00_35 2017.csv")
-    f = open(folder + "PANCANCER_Genetic_feature.csv") # input
+    f = open(str(datadir) + "/" + "PANCANCER_Genetic_feature.csv")
     reader = csv.reader(f)
-    reader.next()
+    #reader.next()
+    next(reader, None)
     cell_dict = {}
     mut_dict = {}
 
@@ -217,15 +220,18 @@ def save_cell_mut_matrix():
     for item in matrix_list:
         matrix[item[0], item[1]] = item[2]
 
-    feature_num = [len(filter(lambda x: x >=0, list(matrix[i, :]))) for i in range(len(cell_dict))]
+    #feature_num = [len(filter(lambda x: x >=0, list(matrix[i, :]))) for i in range(len(cell_dict))]
+    feature_num = [len(list(filter(lambda x: x >=0, list(matrix[i, :])))) for i in range(len(cell_dict))]
     indics = [i for i in range(len(feature_num)) if feature_num[i]==735]
     matrix = matrix[indics, :]
 
-    inv_cell_dict = {v:k for k,v in cell_dict.iteritems()}
+    #inv_cell_dict = {v:k for k,v in cell_dict.iteritems()}
+    inv_cell_dict = {v:k for k,v in cell_dict.items()}
     all_names = [inv_cell_dict[i] for i in range(len(inv_cell_dict))]
     cell_names = np.array([all_names[i] for i in indics])
 
-    inv_mut_dict = {v:k for k,v in mut_dict.iteritems()}
+    #inv_mut_dict = {v:k for k,v in mut_dict.iteritems()}
+    inv_mut_dict = {v:k for k,v in mut_dict.items()}
     mut_names = np.array([inv_mut_dict[i] for i in range(len(inv_mut_dict))])
     
     desc1 = []
@@ -243,28 +249,26 @@ def save_cell_mut_matrix():
     save_dict["desc1"] = desc1
     save_dict["desc2"] = desc2
 
-    print "cell mut data:"
-    print len(all_names)    
-    print cell_names.shape
-    print mut_names.shape
-    print matrix.shape
-    np.save(folder + "cell_mut_matrix.npy", save_dict) # final output
-    print "finish saving cell mut data:"
+    print("cell mut data:")
+    print(len(all_names))   
+    print(cell_names.shape)
+    print(mut_names.shape)
+    print(matrix.shape)
+    np.save(outdir + "/" + "cell_mut_matrix.npy", save_dict)
+    print("finish saving cell mut data:")
 
     return matrix, cell_names, mut_names
 
-#save_cell_mut_matrix()
-#exit()
 """
 This part is used to extract the drug - cell interaction strength. it contains IC50, AUC, Max conc, RMSE, Z_score
-
 """
 
 def save_drug_cell_matrix():
     #f = open(folder + "PANCANCER_IC_Tue Oct 31 02_59_53 2017.csv")
-    f = open(folder + "PANCANCER_IC.csv") # input
+    f = open(str(datadir) + "/" + "PANCANCER_IC.csv")
     reader = csv.reader(f)
-    reader.next()
+    #reader.next()
+    next(reader, None)
 
     drug_dict = {}
     cell_dict = {}
@@ -299,8 +303,10 @@ def save_drug_cell_matrix():
         matrix[item[0], item[1], 5] = math.exp(float(item[2]))
 
     
-    inv_drug_dict = {v:k for k,v in drug_dict.iteritems()}
-    inv_cell_dict = {v:k for k,v in cell_dict.iteritems()}
+    #inv_drug_dict = {v:k for k,v in drug_dict.iteritems()}
+    #inv_cell_dict = {v:k for k,v in cell_dict.iteritems()}
+    inv_drug_dict = {v:k for k,v in drug_dict.items()}
+    inv_cell_dict = {v:k for k,v in cell_dict.items()}
     
     drug_names, drug_cids, canonical = save_drug_smiles_onehot()
     cell_mut_matrix, cell_names, mut_names = save_cell_mut_matrix()
@@ -313,7 +319,7 @@ def save_drug_cell_matrix():
     row, col = np.where(existance > 0)
     positions = np.array(zip(row, col))
    
-    print positions.shape
+    print(positions.shape)
 
     save_dict = {}
     save_dict["drug_names"] = drug_names
@@ -326,20 +332,32 @@ def save_drug_cell_matrix():
     save_dict["Z_score"] = sub_matrix[:, :, 4]
     save_dict["raw_ic50"] = sub_matrix[:, :, 5]
 
-    print "drug cell interaction data:"
-    print drug_names.shape
-    print cell_names.shape
-    print sub_matrix.shape
-    print matrix.shape
+    print("drug cell interaction data:")
+    print(drug_names.shape)
+    print(cell_names.shape)
+    print(sub_matrix.shape)
+    print(matrix.shape)
    
-    np.save(folder + "drug_cell_interaction.npy", save_dict) # final output
-    print "finish saving drug cell interaction data:"
+    np.save(outdir + "/" + "drug_cell_interaction.npy", save_dict)
+    print("finish saving drug cell interaction data:")
     return sub_matrix
-    
-#print("Getting CIDs for drugs...")
-#write_drug_cid()
-#cid_from_other_source()
-#print("Downloading SMILES...")
-#download_smiles()
-print("Extract drug-cell interaction strength...")
+
+#folder = ""
+folder = Path(__file__).resolve().parent
+datadir = folder/f"./data"
+# prints parent directory
+parent_dir = os.path.abspath(os.path.join(folder, os.pardir))
+outdir = parent_dir + "/" + "data_processed"
+os.makedirs(outdir, exist_ok=True)
+# fetch data (if needed)
+ftp_origin = ""
+data_file_list = ["drug_smiles.csv", "PANCANCER_Genetic_feature.csv", "PANCANCER_IC.csv"]
+"""
+for f in data_file_list:
+    candle.get_file(fname=f.strip(),
+                    origin=os.path.join(ftp_origin, f.strip()),
+                    unpack=False, md5_hash=None,
+                    datadir=folder/f"./data",
+                    cache_subdir=None)
+"""
 save_drug_cell_matrix()
