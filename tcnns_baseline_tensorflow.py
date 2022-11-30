@@ -153,18 +153,18 @@ def run(args):
     shape = conv_merge.get_shape().as_list()
     conv_flat = tf.reshape(conv_merge, [-1, shape[1] * shape[2]])
 
-    fc1_w = weight_variable([shape[1] * shape[2], args.dense[0]]) # added
-    fc1_b = bias_variable(args.dense[0]) # added
+    fc1_w = weight_variable([shape[1] * shape[2], args.dense[0]], args.std_dev) # added
+    fc1_b = bias_variable([args.dense[0]], args.bias_constant) # added
     fc1_h = tf.nn.relu(tf.matmul(conv_flat, fc1_w) + fc1_b)
     fc1_drop = tf.nn.dropout(fc1_h, keep_prob)
 
-    fc2_w = weight_variable([args.dense[1], args.dense[1]]) # added
-    fc2_b = bias_variable([args.dense[1]]) # added
+    fc2_w = weight_variable([args.dense[1], args.dense[1]], args.std_dev) # added
+    fc2_b = bias_variable([args.dense[1]], args.bias_constant) # added
     fc2_h = tf.nn.relu(tf.matmul(fc1_drop, fc2_w) + fc2_b)
     fc2_drop = tf.nn.dropout(fc2_h, keep_prob)
 
-    fc3_w = weight_variable([args.dense[2], 1]) # added
-    fc3_b = weight_variable([1])
+    fc3_w = weight_variable([args.dense[2], 1], args.std_dev) # added
+    fc3_b = weight_variable([1], args.std_dev)
 
     y_conv = tf.nn.sigmoid(tf.matmul(fc2_drop, fc3_w) + fc3_b)
 
@@ -208,7 +208,7 @@ def run(args):
                 test_loss, test_r2, test_p, test_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
                 print("find best, loss: %g r2: %g pearson: %g rmsr: %g ******" % (test_loss, test_r2, test_p, test_rmsr))
                 os.system("rm {}/*".format(args.ckpt_directory)) # added checkpoint directory
-                saver.save(sess, args.ckpt_directory/f"result.ckpt")
+                saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
                 print("saved!")
                 min_loss = valid_loss
                 count = 0
@@ -219,8 +219,6 @@ def run(args):
             output_file.write("%g,%g,%g,%g\n"%(test_loss, test_r2, test_p, test_rmsr))
             print("Saved!!!!!")
         output_file.close()
-
-
 
 def main():
     gParameters = initialize_parameters()
