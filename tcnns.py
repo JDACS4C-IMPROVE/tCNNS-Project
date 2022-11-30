@@ -59,7 +59,7 @@ required = [
     "dropout",
     "learning_rate",
     "output_dir",
-    "pool"
+    "pool",
     "ckpt_directory"
 ]
 
