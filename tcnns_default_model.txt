@@ -1,7 +1,7 @@
 [Global_Params]
 data_url = 'https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/'
 processed_data = 'tcnns_data_processed.tar.gz'
-original_data = tcnns_data.tar.gz
+original_data = 'tcnns_data.tar.gz'
 data_dir = 'data_processed'
 output_dir = 'result_all'
 ckpt_directory = 'model_all'
