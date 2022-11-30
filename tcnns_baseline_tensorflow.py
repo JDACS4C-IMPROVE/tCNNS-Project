@@ -65,7 +65,8 @@ def run(args):
 
     fdir = Path(__file__).resolve().parent
     if args.output_dir is not None:
-        outdir = fdir/args.output_dir
+        #outdir = fdir/args.output_dir
+        outdir = args.output_dir
     else:
         outdir = fdir/f"/results_all"
     os.makedirs(outdir, exist_ok=True)
@@ -206,8 +207,8 @@ def run(args):
             if valid_loss < min_loss:
                 test_loss, test_r2, test_p, test_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
                 print("find best, loss: %g r2: %g pearson: %g rmsr: %g ******" % (test_loss, test_r2, test_p, test_rmsr))
-                os.system("rm {}/*".format(args.ckpt.directory)) # added checkpoint directory
-                saver.save(sess, args.ckpt.directory/f"result.ckpt")
+                os.system("rm {}/*".format(args.ckpt_directory)) # added checkpoint directory
+                saver.save(sess, args.ckpt_directory/f"result.ckpt")
                 print("saved!")
                 min_loss = valid_loss
                 count = 0
