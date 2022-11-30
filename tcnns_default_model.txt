@@ -1,6 +1,7 @@
 [Global_Params]
 data_url = 'https://ftp.mcs.anl.gov/pub/candle/public/improve/tCNNS/'
 preprocessed_data = 'tCNNS_preprocessed_data.tar.gz'
+data_dir = 'data_processed'
 output_dir = 'result_all'
 ckpt_directory = 'model_all'
 model_name = 'tCNNS'
@@ -23,12 +24,8 @@ std_dev = 0.1
 conv_width = [7, 7, 7, 7, 7, 7]
 conv_stride = 1
 pool = [3, 3, 3, 3, 3, 3] 
-drug_conv1_out = 40
-drug_conv2_out = 80
-drug_conv3_out = 60
-cell_conv1_out = 40
-cell_conv2_out = 80
-cell_conv3_out = 60
+drug_conv = [40, 80, 60]
+cell_conv = [40, 80, 60] 
 
 
 

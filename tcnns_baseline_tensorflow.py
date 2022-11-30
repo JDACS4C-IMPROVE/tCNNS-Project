@@ -4,19 +4,20 @@ import candle
 import tensorflow as tf
 from batcher import *
 import tcnns
+import numpy as np
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 
-def weight_variable(shape, args):
-    initial = tf.truncated_normal(shape, stddev=args.std_dev) # added
+def weight_variable(shape, std_dev):
+    initial = tf.truncated_normal(shape, stddev=std_dev) # added
     return tf.Variable(initial)
 
-def bias_variable(shape, args):
-    initial = tf.constant(args.bias_constant, shape=shape) # added
+def bias_variable(shape, bias_constant):
+    initial = tf.constant(bias_constant, shape=shape) # added
     return tf.Variable(initial) 
 
-def conv1d(x, W, args):
-    return tf.nn.conv1d(x, W, args.conv_stride, padding='SAME') # added
+def conv1d(x, W, conv_stride):
+    return tf.nn.conv1d(x, W, conv_stride, padding='SAME') # added
 
 def max_pool_1d(x, kernel_shape, strides, padding='SAME'):
     return tf.nn.pool(x, kernel_shape, 'MAX', padding=padding, strides=strides)
@@ -69,6 +70,7 @@ def run(args):
         outdir = fdir/f"/results_all"
     os.makedirs(outdir, exist_ok=True)
 
+    """
     # fetch data (if needed)
     ftp_origin = args.data_url
     data_file_list = ["drug_onehot_smiles.npy", "drug_cell_interaction.npy", "cell_mut_matrix.npy"]
@@ -78,11 +80,12 @@ def run(args):
                         unpack=False, md5_hash=None,
                         datadir=fdir/f"./data_processed",
                         cache_subdir=None)
+    """
 
     # load files
-    drug_smile_dict = np.load(str(datadir) + "/" + "drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
-    drug_cell_dict = np.load(str(datadir) + "/" + "data/drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
-    cell_mut_dict = np.load(str(datadir) + "/" + "data/cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
+    drug_smile_dict = np.load(str(args.data_dir) + "/" + "drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
+    drug_cell_dict = np.load(str(args.data_dir) + "/" + "drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
+    cell_mut_dict = np.load(str(args.data_dir) + "/" + "cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
 
     # define variables
     c_chars = drug_smile_dict["c_chars"]
@@ -102,47 +105,47 @@ def run(args):
     scores = tf.placeholder(tf.float32, shape=[None, 1])
     keep_prob = tf.placeholder(tf.float32)
 
-    drug_conv1_out = args.drug_conv1_out # added
+    drug_conv1_out = args.drug_conv[0] # added
     drug_conv1_pool = args.pool[0] # added
-    drug_conv1_w = weight_variable([args.conv_width[0], args.num_chars_smiles, drug_conv1_out]) # added 7 and 28
-    drug_conv1_b = bias_variable([drug_conv1_out])
-    drug_conv1_h = tf.nn.relu(conv1d(drug, drug_conv1_w) + drug_conv1_b)
+    drug_conv1_w = weight_variable([args.conv_width[0], args.num_chars_smiles, drug_conv1_out], args.std_dev) # added 7 and 28
+    drug_conv1_b = bias_variable([drug_conv1_out], args.bias_constant)
+    drug_conv1_h = tf.nn.relu(conv1d(drug, drug_conv1_w, args.conv_stride) + drug_conv1_b)
     drug_conv1_p = max_pool_1d(drug_conv1_h, [drug_conv1_pool], [drug_conv1_pool])
 
-    drug_conv2_out = args.drug_conv2_out # added
+    drug_conv2_out = args.drug_conv[1] # added
     drug_conv2_pool = args.pool[1] # added
-    drug_conv2_w = weight_variable([args.conv_width[1], drug_conv1_out, drug_conv2_out]) # added 7
-    drug_conv2_b = bias_variable([drug_conv2_out])
-    drug_conv2_h = tf.nn.relu(conv1d(drug_conv1_p, drug_conv2_w) + drug_conv2_b)
+    drug_conv2_w = weight_variable([args.conv_width[1], drug_conv1_out, drug_conv2_out], args.std_dev) # added 7
+    drug_conv2_b = bias_variable([drug_conv2_out], args.bias_constant)
+    drug_conv2_h = tf.nn.relu(conv1d(drug_conv1_p, drug_conv2_w, args.conv_stride) + drug_conv2_b)
     drug_conv2_p = max_pool_1d(drug_conv2_h, [drug_conv2_pool], [drug_conv2_pool])
 
-    drug_conv3_out = args.drug_conv3_out # added
+    drug_conv3_out = args.drug_conv[2] # added
     drug_conv3_pool = args.pool[2] # added
-    drug_conv3_w = weight_variable([args.conv_width[2], drug_conv2_out, drug_conv3_out]) # added 7
-    drug_conv3_b = bias_variable([drug_conv3_out])
-    drug_conv3_h = tf.nn.relu(conv1d(drug_conv2_p, drug_conv3_w) + drug_conv3_b)
+    drug_conv3_w = weight_variable([args.conv_width[2], drug_conv2_out, drug_conv3_out], args.std_dev) # added 7
+    drug_conv3_b = bias_variable([drug_conv3_out], args.bias_constant)
+    drug_conv3_h = tf.nn.relu(conv1d(drug_conv2_p, drug_conv3_w, args.conv_stride) + drug_conv3_b)
     drug_conv3_p = max_pool_1d(drug_conv3_h, [drug_conv3_pool], [drug_conv3_pool])
 
-    cell_conv1_out = args.cell_conv1_out # added
+    cell_conv1_out = args.cell_conv[0] # added
     cell_conv1_pool = args.pool[3] # added
     cell_tensor = tf.expand_dims(cell, 2)
-    cell_conv1_w = weight_variable([args.conv_width[3], 1, cell_conv1_out]) # added 7
-    cell_conv1_b = weight_variable([cell_conv1_out])
-    cell_conv1_h = tf.nn.relu(conv1d(cell_tensor, cell_conv1_w) + cell_conv1_b)
+    cell_conv1_w = weight_variable([args.conv_width[3], 1, cell_conv1_out], args.std_dev) # added 7
+    cell_conv1_b = weight_variable([cell_conv1_out], args.bias_constant)
+    cell_conv1_h = tf.nn.relu(conv1d(cell_tensor, cell_conv1_w, args.conv_stride) + cell_conv1_b)
     cell_conv1_p = max_pool_1d(cell_conv1_h, [cell_conv1_pool], [cell_conv1_pool])
 
-    cell_conv2_out = args.cell_conv2_out # added
+    cell_conv2_out = args.cell_conv[1] # added
     cell_conv2_pool = args.pool[4] # added
-    cell_conv2_w = weight_variable([args.conv_width[4], cell_conv1_out, cell_conv2_out]) # added 7
-    cell_conv2_b = bias_variable([cell_conv2_out])
-    cell_conv2_h = tf.nn.relu(conv1d(cell_conv1_p, cell_conv2_w) + cell_conv2_b)
+    cell_conv2_w = weight_variable([args.conv_width[4], cell_conv1_out, cell_conv2_out], args.std_dev) # added 7
+    cell_conv2_b = bias_variable([cell_conv2_out], args.bias_constant)
+    cell_conv2_h = tf.nn.relu(conv1d(cell_conv1_p, cell_conv2_w, args.conv_stride) + cell_conv2_b)
     cell_conv2_p = max_pool_1d(cell_conv2_h, [cell_conv2_pool], [cell_conv2_pool])
 
-    cell_conv3_out = args.cell_conv3_out # added
+    cell_conv3_out = args.cell_conv[2] # added
     cell_conv3_pool = args.pool[5] # added
-    cell_conv3_w = weight_variable([args.conv_width[5], cell_conv2_out, cell_conv3_out]) # added 7
-    cell_conv3_b = bias_variable([cell_conv3_out])
-    cell_conv3_h = tf.nn.relu(conv1d(cell_conv2_p, cell_conv3_w) + cell_conv3_b)
+    cell_conv3_w = weight_variable([args.conv_width[5], cell_conv2_out, cell_conv3_out], args.std_dev) # added 7
+    cell_conv3_b = bias_variable([cell_conv3_out], args.bias_constant)
+    cell_conv3_h = tf.nn.relu(conv1d(cell_conv2_p, cell_conv3_w, args.conv_stride) + cell_conv3_b)
     cell_conv3_p = max_pool_1d(cell_conv3_h, [cell_conv3_pool], [cell_conv3_pool])
 
     conv_merge = tf.concat([drug_conv3_p, cell_conv3_p], 1)
