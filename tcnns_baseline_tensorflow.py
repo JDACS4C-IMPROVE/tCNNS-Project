@@ -116,45 +116,45 @@ def run(args):
     scores = tf.compat.v1.placeholder(tf.float32, shape=[None, 1])
     keep_prob = tf.compat.v1.placeholder(tf.float32)
 
-    drug_conv1_out = args.drug_conv1_out  # added
-    drug_conv1_pool = args.pool[0]  # added
-    drug_conv1_w = weight_variable([args.conv_width[0], args.num_chars_smiles, drug_conv1_out], args)  # added 7 and 28
+    drug_conv1_out = args.drug_conv_out[0]  # added
+    drug_conv1_pool = args.drug_pool[0]  # added
+    drug_conv1_w = weight_variable([args.drug_conv_width[0], args.num_chars_smiles, drug_conv1_out], args)  # added 7 and 28
     drug_conv1_b = bias_variable([drug_conv1_out], args)
     drug_conv1_h = tf.nn.relu(conv1d(drug, drug_conv1_w, args) + drug_conv1_b)
     drug_conv1_p = max_pool_1d(drug_conv1_h, [drug_conv1_pool], [drug_conv1_pool])
 
-    drug_conv2_out = args.drug_conv2_out  # added
-    drug_conv2_pool = args.pool[1]  # added
-    drug_conv2_w = weight_variable([args.conv_width[1], drug_conv1_out, drug_conv2_out], args)  # added 7
+    drug_conv2_out = args.drug_conv_out[1]  # added
+    drug_conv2_pool = args.drug_pool[1]  # added
+    drug_conv2_w = weight_variable([args.drug_conv_width[1], drug_conv1_out, drug_conv2_out], args)  # added 7
     drug_conv2_b = bias_variable([drug_conv2_out], args)
     drug_conv2_h = tf.nn.relu(conv1d(drug_conv1_p, drug_conv2_w, args) + drug_conv2_b)
     drug_conv2_p = max_pool_1d(drug_conv2_h, [drug_conv2_pool], [drug_conv2_pool])
 
-    drug_conv3_out = args.drug_conv3_out  # added
-    drug_conv3_pool = args.pool[2]  # added
-    drug_conv3_w = weight_variable([args.conv_width[2], drug_conv2_out, drug_conv3_out], args)  # added 7
+    drug_conv3_out = args.drug_conv_out[2]  # added
+    drug_conv3_pool = args.drug_pool[2]  # added
+    drug_conv3_w = weight_variable([args.drug_conv_width[2], drug_conv2_out, drug_conv3_out], args)  # added 7
     drug_conv3_b = bias_variable([drug_conv3_out], args)
     drug_conv3_h = tf.nn.relu(conv1d(drug_conv2_p, drug_conv3_w, args) + drug_conv3_b)
     drug_conv3_p = max_pool_1d(drug_conv3_h, [drug_conv3_pool], [drug_conv3_pool])
 
-    cell_conv1_out = args.cell_conv1_out  # added
-    cell_conv1_pool = args.pool[3]  # added
+    cell_conv1_out = args.cell_conv_out[0]  # added
+    cell_conv1_pool = args.cell_pool[0]  # added
     cell_tensor = tf.expand_dims(cell, 2)
-    cell_conv1_w = weight_variable([args.conv_width[3], 1, cell_conv1_out], args)  # added 7
+    cell_conv1_w = weight_variable([args.cell_conv_width[0], 1, cell_conv1_out], args)  # added 7
     cell_conv1_b = bias_variable([cell_conv1_out], args)
     cell_conv1_h = tf.nn.relu(conv1d(cell_tensor, cell_conv1_w, args) + cell_conv1_b)
     cell_conv1_p = max_pool_1d(cell_conv1_h, [cell_conv1_pool], [cell_conv1_pool])
 
-    cell_conv2_out = args.cell_conv2_out  # added
-    cell_conv2_pool = args.pool[4]  # added
-    cell_conv2_w = weight_variable([args.conv_width[4], cell_conv1_out, cell_conv2_out], args)  # added 7
+    cell_conv2_out = args.cell_conv_out[1]  # added
+    cell_conv2_pool = args.cell_pool[1]  # added
+    cell_conv2_w = weight_variable([args.cell_conv_width[1], cell_conv1_out, cell_conv2_out], args)  # added 7
     cell_conv2_b = bias_variable([cell_conv2_out], args)
     cell_conv2_h = tf.nn.relu(conv1d(cell_conv1_p, cell_conv2_w, args) + cell_conv2_b)
     cell_conv2_p = max_pool_1d(cell_conv2_h, [cell_conv2_pool], [cell_conv2_pool])
 
-    cell_conv3_out = args.cell_conv3_out  # added
-    cell_conv3_pool = args.pool[5]  # added
-    cell_conv3_w = weight_variable([args.conv_width[5], cell_conv2_out, cell_conv3_out], args)  # added 7
+    cell_conv3_out = args.cell_conv_out[2]  # added
+    cell_conv3_pool = args.cell_pool[2]  # added
+    cell_conv3_w = weight_variable([args.cell_conv_width[2], cell_conv2_out, cell_conv3_out], args)  # added 7
     cell_conv3_b = bias_variable([cell_conv3_out], args)
     cell_conv3_h = tf.nn.relu(conv1d(cell_conv2_p, cell_conv3_w, args) + cell_conv3_b)
     cell_conv3_p = max_pool_1d(cell_conv3_h, [cell_conv3_pool], [cell_conv3_pool])
