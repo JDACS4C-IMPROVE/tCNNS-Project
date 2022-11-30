@@ -46,7 +46,8 @@ def Pearson(a, b):
     real_var = tf.reduce_mean(tf.multiply(real_new, real_new))
     pred_var = tf.reduce_mean(tf.multiply(pred_new, pred_new))
     down = tf.multiply(tf.sqrt(real_var), tf.sqrt(pred_var))
-    return tf.compat.v1.div(up, down)
+    # return tf.compat.v1.div(up, down)
+    return tf.math.divide(up, down)
 
 
 def initialize_parameters(default_model="tcnns_default_model.txt"):
@@ -92,7 +93,7 @@ def run(args):
                         cache_subdir=None)
         '''
 
-    datadir = str(fdir)+"/data"
+    datadir = str(fdir) + "/data"
     # load files
     drug_smile_dict = np.load(str(datadir) + "/" + "drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
     drug_cell_dict = np.load(str(datadir) + "/" + "drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
@@ -209,13 +210,13 @@ def run(args):
             step = 0
             while(train.available()):
                 real_values, drug_smiles, cell_muts = train.mini_batch()
-                train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})  # added
+                train_step.run(feed_dict={drug: drug_smiles, cell: cell_muts, scores: real_values, keep_prob: args.dropout})  # added
                 step += 1
-            valid_loss, valid_r2, valid_p, valid_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
+            valid_loss, valid_r2, valid_p, valid_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug: valid_drugs, cell: valid_cells, scores: valid_values, keep_prob: 1})
             print("epoch: %d, loss: %g r2: %g pearson: %g rmsr: %g" % (epoch, valid_loss, valid_r2, valid_p, valid_rmsr))
             epoch += 1
             if valid_loss < min_loss:
-                test_loss, test_r2, test_p, test_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
+                test_loss, test_r2, test_p, test_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug: test_drugs, cell: test_cells, scores: test_values, keep_prob: 1})
                 print("find best, loss: %g r2: %g pearson: %g rmsr: %g ******" % (test_loss, test_r2, test_p, test_rmsr))
                 os.system("rm {}/*".format(args.ckpt.directory))  # added checkpoint directory
                 saver.save(sess, args.ckpt.directory/f"result.ckpt")
@@ -231,13 +232,12 @@ def run(args):
         output_file.close()
 
 
-
 def main():
     gParameters = initialize_parameters()
     args = candle.ArgumentStruct(**gParameters)
     print(args)
     run(args)
 
+
 if __name__ == "__main__":
     main()
-
