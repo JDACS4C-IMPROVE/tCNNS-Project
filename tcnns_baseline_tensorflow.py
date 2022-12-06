@@ -56,7 +56,9 @@ def initialize_parameters(default_model="tcnns_default_model.txt"):
 
     return gParameters
 
-def run(args): 
+def run(gParameters): 
+
+    args = candle.ArgumentStruct(**gParameters)
 
     if tf.test.gpu_device_name():
         print("Default GPU Device:{}".format(tf.test.gpu_device_name()))
@@ -100,59 +102,126 @@ def run(args):
     all_positions = drug_cell_dict["positions"]
     np.random.shuffle(all_positions)
 
+    length_smiles = len(canonical[0])
+    num_cell_features = len(mut_names)
+    num_chars_smiles = len(c_chars)
+
+    print("Length of SMILES string: {}".format(length_smiles)) # length of smiles
+    print("Number of mutations {}".format(num_cell_features)) # number of mutations
+    print("Number of unique characters in SMILES string: {}".format(num_chars_smiles)) # number of characters in smiles
+
     # define model
-    drug = tf.placeholder(tf.float32, shape=[None, args.length_smiles, args.num_chars_smiles]) # added
-    cell = tf.placeholder(tf.float32, shape=[None, args.num_cell_features]) # added
+    drug = tf.placeholder(tf.float32, shape=[None, length_smiles, num_chars_smiles]) # added
+    cell = tf.placeholder(tf.float32, shape=[None, num_cell_features]) # added
     scores = tf.placeholder(tf.float32, shape=[None, 1])
     keep_prob = tf.placeholder(tf.float32)
 
-    drug_conv1_out = args.drug_conv[0] # added
-    drug_conv1_pool = args.pool[0] # added
-    drug_conv1_w = weight_variable([args.conv_width[0], args.num_chars_smiles, drug_conv1_out], args.std_dev) # added 7 and 28
+    # define drug convolutional layers
+    for i in range(0, len(args.drug_conv_out)):
+        if i == 0:
+            drug_conv_out = args.drug_conv_out[i] 
+            drug_conv_pool = args.drug_pool[i]
+            drug_conv_w = weight_variable([args.drug_conv_width[i], num_chars_smiles, drug_conv_out], args.std_dev)
+            drug_conv_b = bias_variable([drug_conv_out], args.bias_constant)
+            drug_conv_h = tf.nn.relu(conv1d(drug, drug_conv_w, args.conv_stride) + drug_conv_b)
+            drug_conv_p = max_pool_1d(drug_conv_h, [drug_conv_pool], [drug_conv_pool])
+        else:
+            drug_conv_out = args.drug_conv_out[i] 
+            drug_conv_pool = args.drug_pool[i]
+            drug_conv_w = weight_variable([args.drug_conv_width[i], args.drug_conv_out[i-1], drug_conv_out], args.std_dev)
+            drug_conv_b = bias_variable([drug_conv_out], args.bias_constant)
+            drug_conv_h = tf.nn.relu(conv1d(drug_conv_p, drug_conv_w, args.conv_stride) + drug_conv_b)
+            drug_conv_p = max_pool_1d(drug_conv_h, [drug_conv_pool], [drug_conv_pool])
+
+    """
+    drug_conv1_out = args.drug_conv_out[0] # added
+    drug_conv1_pool = args.drug_pool[0] # added
+    drug_conv1_w = weight_variable([args.drug_conv_width[0], args.num_chars_smiles, drug_conv1_out], args.std_dev) # added 7 and 28
     drug_conv1_b = bias_variable([drug_conv1_out], args.bias_constant)
     drug_conv1_h = tf.nn.relu(conv1d(drug, drug_conv1_w, args.conv_stride) + drug_conv1_b)
     drug_conv1_p = max_pool_1d(drug_conv1_h, [drug_conv1_pool], [drug_conv1_pool])
 
-    drug_conv2_out = args.drug_conv[1] # added
-    drug_conv2_pool = args.pool[1] # added
-    drug_conv2_w = weight_variable([args.conv_width[1], drug_conv1_out, drug_conv2_out], args.std_dev) # added 7
+    drug_conv2_out = args.drug_conv_out[1] # added
+    drug_conv2_pool = args.drug_pool[1] # added
+    drug_conv2_w = weight_variable([args.drug_conv_width[1], drug_conv1_out, drug_conv2_out], args.std_dev) # added 7
     drug_conv2_b = bias_variable([drug_conv2_out], args.bias_constant)
     drug_conv2_h = tf.nn.relu(conv1d(drug_conv1_p, drug_conv2_w, args.conv_stride) + drug_conv2_b)
     drug_conv2_p = max_pool_1d(drug_conv2_h, [drug_conv2_pool], [drug_conv2_pool])
 
-    drug_conv3_out = args.drug_conv[2] # added
-    drug_conv3_pool = args.pool[2] # added
-    drug_conv3_w = weight_variable([args.conv_width[2], drug_conv2_out, drug_conv3_out], args.std_dev) # added 7
+    drug_conv3_out = args.drug_conv_out[2] # added
+    drug_conv3_pool = args.drug_pool[2] # added
+    drug_conv3_w = weight_variable([args.drug_conv_width[2], drug_conv2_out, drug_conv3_out], args.std_dev) # added 7
     drug_conv3_b = bias_variable([drug_conv3_out], args.bias_constant)
     drug_conv3_h = tf.nn.relu(conv1d(drug_conv2_p, drug_conv3_w, args.conv_stride) + drug_conv3_b)
     drug_conv3_p = max_pool_1d(drug_conv3_h, [drug_conv3_pool], [drug_conv3_pool])
+    """
 
-    cell_conv1_out = args.cell_conv[0] # added
-    cell_conv1_pool = args.pool[3] # added
+    # define cell convolutional layers
+    for i in range(0, len(args.cell_conv_out)):
+        if i == 0:
+            cell_conv_out = args.cell_conv_out[i] # added
+            cell_conv_pool = args.cell_pool[i] # added
+            cell_tensor = tf.expand_dims(cell, 2)
+            cell_conv_w = weight_variable([args.cell_conv_width[i], 1, cell_conv_out], args.std_dev)
+            cell_conv_b = weight_variable([cell_conv_out], args.bias_constant)
+            cell_conv_h = tf.nn.relu(conv1d(cell_tensor, cell_conv_w, args.conv_stride) + cell_conv_b)
+            cell_conv_p = max_pool_1d(cell_conv_h, [cell_conv_pool], [cell_conv_pool])
+        else: 
+            cell_conv_out = args.cell_conv_out[i] # added
+            cell_conv_pool = args.cell_pool[i] # added
+            cell_tensor = tf.expand_dims(cell, 2)
+            cell_conv_w = weight_variable([args.cell_conv_width[i], args.cell_conv_out[i-1], cell_conv_out], args.std_dev)
+            cell_conv_b = weight_variable([cell_conv_out], args.bias_constant)
+            cell_conv_h = tf.nn.relu(conv1d(cell_conv_p, cell_conv_w, args.conv_stride) + cell_conv_b)
+            cell_conv_p = max_pool_1d(cell_conv_h, [cell_conv_pool], [cell_conv_pool])
+
+    """
+    cell_conv1_out = args.cell_conv_out[0] # added
+    cell_conv1_pool = args.cell_pool[0] # added
     cell_tensor = tf.expand_dims(cell, 2)
-    cell_conv1_w = weight_variable([args.conv_width[3], 1, cell_conv1_out], args.std_dev) # added 7
+    cell_conv1_w = weight_variable([args.cell_conv_width[0], 1, cell_conv1_out], args.std_dev) # added 7
     cell_conv1_b = weight_variable([cell_conv1_out], args.bias_constant)
     cell_conv1_h = tf.nn.relu(conv1d(cell_tensor, cell_conv1_w, args.conv_stride) + cell_conv1_b)
     cell_conv1_p = max_pool_1d(cell_conv1_h, [cell_conv1_pool], [cell_conv1_pool])
 
-    cell_conv2_out = args.cell_conv[1] # added
-    cell_conv2_pool = args.pool[4] # added
-    cell_conv2_w = weight_variable([args.conv_width[4], cell_conv1_out, cell_conv2_out], args.std_dev) # added 7
+    cell_conv2_out = args.cell_conv_out[1] # added
+    cell_conv2_pool = args.cell_pool[1] # added
+    cell_conv2_w = weight_variable([args.cell_conv_width[1], cell_conv1_out, cell_conv2_out], args.std_dev) # added 7
     cell_conv2_b = bias_variable([cell_conv2_out], args.bias_constant)
     cell_conv2_h = tf.nn.relu(conv1d(cell_conv1_p, cell_conv2_w, args.conv_stride) + cell_conv2_b)
     cell_conv2_p = max_pool_1d(cell_conv2_h, [cell_conv2_pool], [cell_conv2_pool])
 
-    cell_conv3_out = args.cell_conv[2] # added
-    cell_conv3_pool = args.pool[5] # added
-    cell_conv3_w = weight_variable([args.conv_width[5], cell_conv2_out, cell_conv3_out], args.std_dev) # added 7
+    cell_conv3_out = args.cell_conv_out[2] # added
+    cell_conv3_pool = args.cell_pool[2] # added
+    cell_conv3_w = weight_variable([args.cell_conv_width[2], cell_conv2_out, cell_conv3_out], args.std_dev) # added 7
     cell_conv3_b = bias_variable([cell_conv3_out], args.bias_constant)
     cell_conv3_h = tf.nn.relu(conv1d(cell_conv2_p, cell_conv3_w, args.conv_stride) + cell_conv3_b)
     cell_conv3_p = max_pool_1d(cell_conv3_h, [cell_conv3_pool], [cell_conv3_pool])
+    """
 
-    conv_merge = tf.concat([drug_conv3_p, cell_conv3_p], 1)
+    #conv_merge = tf.concat([drug_conv3_p, cell_conv3_p], 1)
+    conv_merge = tf.concat([drug_conv_p, cell_conv_p], 1)
     shape = conv_merge.get_shape().as_list()
     conv_flat = tf.reshape(conv_merge, [-1, shape[1] * shape[2]])
 
+    # define fully connected layers
+    for i in range(0, len(args.dense)):
+        if i == 0:
+            fc_w = weight_variable([shape[1] * shape[2], args.dense[i]], args.std_dev)
+            fc_b = bias_variable([args.dense[i]], args.bias_constant)
+            fc_h = tf.nn.relu(tf.matmul(conv_flat, fc_w) + fc_b)
+            fc_drop = tf.nn.dropout(fc_h, keep_prob)
+        elif i == (len(args.dense) - 1): 
+            fc_w = weight_variable([args.dense[i], 1], args.std_dev)
+            fc_b = weight_variable([1], args.std_dev)
+        else:
+            fc_w = weight_variable([args.dense[i], args.dense[i]], args.std_dev) # added
+            fc_b = bias_variable([args.dense[i]], args.bias_constant) # added
+            fc_h = tf.nn.relu(tf.matmul(fc_drop, fc_w) + fc_b)
+            fc_drop = tf.nn.dropout(fc_h, keep_prob)
+
+
+    """
     fc1_w = weight_variable([shape[1] * shape[2], args.dense[0]], args.std_dev) # added
     fc1_b = bias_variable([args.dense[0]], args.bias_constant) # added
     fc1_h = tf.nn.relu(tf.matmul(conv_flat, fc1_w) + fc1_b)
@@ -165,8 +234,10 @@ def run(args):
 
     fc3_w = weight_variable([args.dense[2], 1], args.std_dev) # added
     fc3_b = weight_variable([1], args.std_dev)
+    """
 
-    y_conv = tf.nn.sigmoid(tf.matmul(fc2_drop, fc3_w) + fc3_b)
+    #y_conv = tf.nn.sigmoid(tf.matmul(fc2_drop, fc3_w) + fc3_b)
+    y_conv = tf.nn.sigmoid(tf.matmul(fc_drop, fc_w) + fc_b)
 
     # define loss
     loss = tf.losses.mean_squared_error(scores, y_conv)
@@ -189,6 +260,13 @@ def run(args):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
+        variables_names = [v.name for v in tf.trainable_variables()]
+        values = sess.run(variables_names)
+        for k, v in zip(variables_names, values):
+            print("Variable: ", k)
+            print("Shape: ", v.shape)
+
         test_values, test_drugs, test_cells = test.whole_batch()
         valid_values, valid_drugs, valid_cells = valid.whole_batch()
         epoch = 0
@@ -222,10 +300,7 @@ def run(args):
 
 def main():
     gParameters = initialize_parameters()
-    args = candle.ArgumentStruct(**gParameters)
-    print(args)
-    run(args)
+    run(gParameters)
 
 if __name__ == "__main__":
     main()
-

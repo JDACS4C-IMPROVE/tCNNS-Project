@@ -12,16 +12,15 @@ batch_size = 100
 epochs = 10  #count
 dropout = 0.5  #keep_prob
 min_loss = 100
-length_smiles = 188
-num_chars_smiles = 28
-num_cell_features = 735
 bias_constant = 0.1
-std_dev = 0.1 
-conv_width = [7, 7, 7, 7, 7, 7]
+std_dev = 0.1
 conv_stride = 1
-pool = [3, 3, 3, 3, 3, 3] 
-drug_conv = [40, 80, 60]
-cell_conv = [40, 80, 60] 
+drug_conv_width = [7, 7, 7]
+drug_conv_out = [40, 80, 60]
+drug_pool = [3, 3, 3]
+cell_conv_width = [7, 7, 7]
+cell_conv_out = [40, 80, 60]
+cell_pool = [3, 3, 3]
 
 
 
