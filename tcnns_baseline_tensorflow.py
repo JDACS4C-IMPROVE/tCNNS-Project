@@ -107,7 +107,7 @@ def run(gParameters):
     num_chars_smiles = len(c_chars)
 
     print("Length of SMILES string: {}".format(length_smiles)) # length of smiles
-    print("Number of mutations {}".format(num_cell_features)) # number of mutations
+    print("Number of mutations: {}".format(num_cell_features)) # number of mutations
     print("Number of unique characters in SMILES string: {}".format(num_chars_smiles)) # number of characters in smiles
 
     # define model
