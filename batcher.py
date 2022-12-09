@@ -57,22 +57,6 @@ class Batch():
             return True
         else:
             return False
-
-drug_smile_dict = np.load("data/drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
-drug_cell_dict = np.load("data/drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
-cell_mut_dict = np.load("data/cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
-
-c_chars = drug_smile_dict["c_chars"]
-drug_names = drug_smile_dict["drug_names"]
-drug_cids = drug_smile_dict["drug_cids"]
-canonical = drug_smile_dict["canonical"]
-canonical = np.transpose(canonical, (0, 2, 1))
-cell_names = cell_mut_dict["cell_names"]
-mut_names = cell_mut_dict["mut_names"]
-cell_mut = cell_mut_dict["cell_mut"]
-
-all_positions = drug_cell_dict["positions"]
-np.random.shuffle(all_positions)
         
 def screen_max_conc():
     max_conc = drug_cell_dict["Max_conc"]
