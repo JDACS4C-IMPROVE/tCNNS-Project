@@ -9,4 +9,4 @@ fname='tcnns_data_processed.tar.gz'
 origin='https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/tcnns_data_processed.tar.gz'
 
 # Download and unpack the data in CANDLE_DATA_DIR
-candle.file_utils.get_file(fname, origin, cache_subdir: str = "data_processed")
+candle.file_utils.get_file(fname, origin, cache_subdir = "data_processed")
