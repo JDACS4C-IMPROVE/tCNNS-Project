@@ -236,7 +236,7 @@ def run(gParameters):
                 count = count + 1
 
         if test_r2 > -2:
-            output_file.write("test loss: %g, test r2 %g, test pearson %g, test rmse %g, test spearman %g\n"%(test_loss, test_r2, test_pcc, test_rmse, test_scc))
+            output_file.write("test loss: %g, test r2: %g, test pearson: %g, test rmse: %g, test spearman: %g\n"%(test_loss, test_r2, test_pcc, test_rmse, test_scc))
             print("Saved!!!!!")
         output_file.close()
     
