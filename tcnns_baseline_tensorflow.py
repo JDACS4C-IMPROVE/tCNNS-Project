@@ -5,6 +5,9 @@ import tensorflow as tf
 from batcher import *
 import tcnns
 import numpy as np
+import json
+from sklearn.metrics import mean_squared_error
+from scipy import stats
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -40,6 +43,12 @@ def Pearson(a, b):
     down = tf.multiply(tf.sqrt(real_var), tf.sqrt(pred_var))
     return tf.div(up, down)
 
+# added function
+def Spearman(real, predicted):
+    rs = tf.py_function(stats.spearmanr, [tf.cast(predicted, tf.float32), 
+                       tf.cast(real, tf.float32)], Tout = tf.float32)
+    return rs
+
 def initialize_parameters(default_model="tcnns_default_model.txt"):
 
     # Build benchmark object
@@ -72,12 +81,18 @@ def run(gParameters):
         outdir = fdir/f"/results_all"
     os.makedirs(outdir, exist_ok=True)
     
-    data_dir = os.environ['CANDLE_DATA_DIR'].rstrip('/')
+    data_dir = os.getenv('CANDLE_DATA_DIR')
+    #data_dir='.'
+    print(data_dir)
 
-    # load files
-    drug_smile_dict = np.load(data_dir + "/common/data_processed/" + "drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
-    drug_cell_dict = np.load(data_dir + "/common/data_processed/" + "drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
-    cell_mut_dict = np.load(data_dir + "/common/data_processed/" + "cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
+    # get data from server or candle_
+    data_file_path = candle.get_file(args.processed_data, args.data_url, datadir = data_dir, cache_subdir = None)
+    
+    #print(data_file_path)
+
+    drug_smile_dict = np.load(data_dir + "/data_processed/" + args.drug_file, encoding="latin1", allow_pickle=True).item()
+    drug_cell_dict = np.load(data_dir + "/data_processed/" + args.response_file, encoding="latin1", allow_pickle=True).item()
+    cell_mut_dict = np.load(data_dir + "/data_processed/" + args.cell_file, encoding="latin1", allow_pickle=True).item()
 
     # define variables
     c_chars = drug_smile_dict["c_chars"]
@@ -89,7 +104,7 @@ def run(gParameters):
     mut_names = cell_mut_dict["mut_names"]
     cell_mut = cell_mut_dict["cell_mut"]
     all_positions = drug_cell_dict["positions"]
-    np.random.shuffle(all_positions)
+    np.random.shuffle(np.array(list(all_positions[()])))
 
     length_smiles = len(canonical[0])
     num_cell_features = len(mut_names)
@@ -171,7 +186,8 @@ def run(gParameters):
     # define metrics
     r_square = R2(scores, y_conv)
     pearson = Pearson(scores, y_conv)
-    rmsr = tf.sqrt(loss)
+    rmse = tf.sqrt(loss)
+    spearman = Spearman(scores, y_conv)
 
     # create train, valid, and test datasets
     train, valid, test = load_data(args.batch_size, ['IC50'])
@@ -203,12 +219,14 @@ def run(gParameters):
                 real_values, drug_smiles, cell_muts = train.mini_batch()
                 train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
                 step += 1
-            valid_loss, valid_r2, valid_p, valid_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
-            print("epoch: %d, loss: %g r2: %g pearson: %g rmsr: %g" % (epoch, valid_loss, valid_r2, valid_p, valid_rmsr))
+            valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
+            print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
             epoch += 1
             if valid_loss < min_loss:
-                test_loss, test_r2, test_p, test_rmsr = sess.run([loss, r_square, pearson, rmsr], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
-                print("find best, loss: %g r2: %g pearson: %g rmsr: %g ******" % (test_loss, test_r2, test_p, test_rmsr))
+                test_loss, test_r2, test_pcc, test_rmse, test_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
+                print("find best, loss: %g r2: %g pearson: %g rmse: %g spearman: %g******" % (test_loss, test_r2, test_pcc, test_rmse, test_scc))
+                # save scores associated with lowest validation loss
+                val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
                 os.system("rm {}/*".format(args.ckpt_directory))
                 saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
                 print("saved!")
@@ -218,13 +236,19 @@ def run(gParameters):
                 count = count + 1
 
         if test_r2 > -2:
-            output_file.write("%g,%g,%g,%g\n"%(test_loss, test_r2, test_p, test_rmsr))
+            output_file.write("test loss: %g, test r2 %g, test pearson %g, test rmse %g, test spearman %g\n"%(test_loss, test_r2, test_pcc, test_rmse, test_scc))
             print("Saved!!!!!")
         output_file.close()
+    
+    # Supervisor HPO
+    print("\nIMPROVE_RESULT val_loss:\t{}\n".format(val_scores["val_loss"]))
+    with open(Path(args.output_dir) / "scores.json", "w", encoding="utf-8") as f:
+        json.dump(val_scores, f, ensure_ascii=False, indent=4)
 
 def main():
     gParameters = initialize_parameters()
     run(gParameters)
+    print("Done.")
 
 if __name__ == "__main__":
     main()

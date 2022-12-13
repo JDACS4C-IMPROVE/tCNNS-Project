@@ -319,8 +319,6 @@ def save_drug_cell_matrix():
     row, col = np.where(existance > 0)
     positions = np.array(zip(row, col))
    
-    print(positions.shape)
-
     save_dict = {}
     save_dict["drug_names"] = drug_names
     save_dict["cell_names"] = cell_names
@@ -335,8 +333,9 @@ def save_drug_cell_matrix():
     print("drug cell interaction data:")
     print(drug_names.shape)
     print(cell_names.shape)
-    print(sub_matrix.shape)
     print(matrix.shape)
+    print(sub_matrix.shape)
+    print(existance.shape)
    
     np.save(outdir + "/" + "drug_cell_interaction.npy", save_dict)
     print("finish saving drug cell interaction data:")

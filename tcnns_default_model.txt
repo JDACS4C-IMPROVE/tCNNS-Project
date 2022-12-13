@@ -1,12 +1,13 @@
 [Global_Params]
-data_url = 'https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/'
+data_url = 'https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/tcnns_data_processed.tar.gz'
 processed_data = 'tcnns_data_processed.tar.gz'
 original_data = 'tcnns_data.tar.gz'
-#data_dir = 'data_processed' # now candle_data_dir
-#output_dir = 'result_all'
-output_dir = '../result_all'
-#ckpt_directory = 'model_all'
-ckpt_directory = '../model_all'
+cell_file = 'cell_mut_matrix.npy'
+response_file = 'drug_cell_interaction.npy'
+drug_file = 'drug_onehot_smiles.npy'
+#data_dir = 'data_processed'
+output_dir = 'result_all'
+ckpt_directory = 'model_all'
 model_name = 'tCNNS'
 dense = [1024, 1024, 1024]
 learning_rate = 0.0001
