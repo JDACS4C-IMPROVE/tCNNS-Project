@@ -81,7 +81,7 @@ def run(gParameters):
         outdir = fdir/f"/results_all"
     os.makedirs(outdir, exist_ok=True)
     
-    data_dir = os.getenv('CANDLE_DATA_DIR')
+    data_dir = os.getenv('CANDLE_DATA_DIR').lstrip("/")
     #data_dir='.'
     print(data_dir)
 
