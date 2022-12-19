@@ -73,26 +73,13 @@ def run(gParameters):
         print("Default GPU Device:{}".format(tf.test.gpu_device_name()))
     else:
         print("GPU not available")
-
-    fdir = Path(__file__).resolve().parent
-    if args.output_dir is not None:
-        outdir = args.output_dir
-    else:
-        outdir = fdir/f"/results_all"
-    os.makedirs(outdir, exist_ok=True)
     
-    data_dir = os.getenv('CANDLE_DATA_DIR').lstrip("/")
-    #data_dir='.'
-    print(data_dir)
-
     # get data from server or candle_
-    data_file_path = candle.get_file(args.processed_data, args.data_url, datadir = data_dir, cache_subdir = None)
-    
-    #print(data_file_path)
+    data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = None)
 
-    drug_smile_dict = np.load(data_dir + "/data_processed/" + args.drug_file, encoding="latin1", allow_pickle=True).item()
-    drug_cell_dict = np.load(data_dir + "/data_processed/" + args.response_file, encoding="latin1", allow_pickle=True).item()
-    cell_mut_dict = np.load(data_dir + "/data_processed/" + args.cell_file, encoding="latin1", allow_pickle=True).item()
+    drug_smile_dict = np.load(args.data_dir + "/data_processed/" + args.drug_file, encoding="latin1", allow_pickle=True).item()
+    drug_cell_dict = np.load(args.data_dir + "/data_processed/" + args.response_file, encoding="latin1", allow_pickle=True).item()
+    cell_mut_dict = np.load(args.data_dir + "/data_processed/" + args.cell_file, encoding="latin1", allow_pickle=True).item()
 
     # define variables
     c_chars = drug_smile_dict["c_chars"]
@@ -196,7 +183,7 @@ def run(gParameters):
     saver = tf.train.Saver(var_list=tf.trainable_variables())
     
     # file to store results
-    output_file = open(str(outdir) + "/" + "result_all.txt", "a")
+    output_file = open(str(args.output_dir) + "/" + "result_all.txt", "a")
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
