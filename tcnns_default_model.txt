@@ -24,6 +24,7 @@ drug_pool = [3, 3, 3]
 cell_conv_width = [7, 7, 7]
 cell_conv_out = [40, 80, 60]
 cell_pool = [3, 3, 3]
+label_name = ['IC50']
 
 
 

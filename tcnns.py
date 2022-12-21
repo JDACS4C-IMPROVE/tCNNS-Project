@@ -67,7 +67,13 @@ additional_definitions = [
     {   "name": "processed_data",
         "type": str, 
         "help": "file of compressed preprocessed data on FTP site",
-    },        
+    },  
+    {
+        "name": "label_name",
+        "type": str,
+        "nargs": "+",
+        "help": "drug response indicator (i.e. IC50 or AUC)",
+    },      
 ]
 
 # required definitions
