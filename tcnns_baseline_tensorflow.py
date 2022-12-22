@@ -8,6 +8,8 @@ import numpy as np
 import json
 from sklearn.metrics import mean_squared_error
 from scipy import stats
+import pandas as pd
+import math
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -49,6 +51,33 @@ def Spearman(real, predicted):
                        tf.cast(real, tf.float32)], Tout = tf.float32)
     return rs
 
+# moved from batcher.py
+def load_data(batch_size, label_list, positions, response_dict, smiles_canonical, mutations):
+    size = positions.shape[0]
+    len1 = int(size * 0.8)
+    len2 = int(size * 0.9)
+    
+    train_pos = positions[0 : len1]
+    valid_pos = positions[len1 : len2]
+    test_pos = positions[len2 : ]
+
+    #value_shape = drug_cell_dict["IC50"].shape
+    value_shape = response_dict[label_list[0]].shape
+    value = np.zeros((value_shape[0], value_shape[1], len(label_list)))
+
+    for i in range(len(label_list)):
+        key_name = label_list[i]
+        assert key_name in response_dict, f"key {key_name} not in dictionary"
+        #value[ :, :, i ] = drug_cell_dict[label_list[i]]
+        value[ :, :, i ] = response_dict[label_list[i]]
+    #drug_smile = canonical
+    drug_smile = smiles_canonical
+
+    train = Batch(batch_size, value, drug_smile, mutations, train_pos)
+    valid = Batch(batch_size, value, drug_smile, mutations, valid_pos)
+    test = Batch(batch_size, value, drug_smile, mutations, test_pos)
+    return train, valid, test, test_pos
+
 def initialize_parameters(default_model="tcnns_default_model.txt"):
 
     # Build benchmark object
@@ -74,8 +103,9 @@ def run(gParameters):
     else:
         print("GPU not available")
     
-    # get data from server or candle_
+    # get data from server or candle
     data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = None)
+    #print(data_file_path)
 
     drug_smile_dict = np.load(args.data_dir + "/data_processed/" + args.drug_file, encoding="latin1", allow_pickle=True).item()
     drug_cell_dict = np.load(args.data_dir + "/data_processed/" + args.response_file, encoding="latin1", allow_pickle=True).item()
@@ -90,8 +120,10 @@ def run(gParameters):
     cell_names = cell_mut_dict["cell_names"]
     mut_names = cell_mut_dict["mut_names"]
     cell_mut = cell_mut_dict["cell_mut"]
-    all_positions = drug_cell_dict["positions"]
-    np.random.shuffle(np.array(list(all_positions[()])))
+    cell_ids = drug_cell_dict["cell_ids"]
+    all_positions = drug_cell_dict["positions"] # array of zipped object
+    all_positions = np.array(list(all_positions.tolist()))
+    np.random.shuffle(all_positions)
 
     length_smiles = len(canonical[0])
     num_cell_features = len(mut_names)
@@ -177,7 +209,8 @@ def run(gParameters):
     spearman = Spearman(scores, y_conv)
 
     # create train, valid, and test datasets
-    train, valid, test = load_data(args.batch_size, ['IC50'])
+    #train, valid, test = load_data(args.batch_size, ['IC50'])
+    train, valid, test, test_pos = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut)
 
     # initialize saver object
     saver = tf.train.Saver(var_list=tf.trainable_variables())
@@ -211,12 +244,13 @@ def run(gParameters):
             epoch += 1
             if valid_loss < min_loss:
                 test_loss, test_r2, test_pcc, test_rmse, test_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
-                print("find best, loss: %g r2: %g pearson: %g rmse: %g spearman: %g******" % (test_loss, test_r2, test_pcc, test_rmse, test_scc))
+                test_predict = sess.run(y_conv, feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
+                print("find best, loss: %g r2: %g pearson: %g rmse: %g spearman: %g ******" % (test_loss, test_r2, test_pcc, test_rmse, test_scc))
                 # save scores associated with lowest validation loss
                 val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
                 os.system("rm {}/*".format(args.ckpt_directory))
                 saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
-                print("saved!")
+                print("Saved!")
                 min_loss = valid_loss
                 count = 0
             else:
@@ -225,6 +259,31 @@ def run(gParameters):
         if test_r2 > -2:
             output_file.write("test loss: %g, test r2: %g, test pearson: %g, test rmse: %g, test spearman: %g\n"%(test_loss, test_r2, test_pcc, test_rmse, test_scc))
             print("Saved!!!!!")
+
+            # get drug names and indices
+            drug_df = pd.DataFrame(drug_names, columns = ["DrugID"])
+            drug_df["drug_index"] = drug_df.index
+            # get cell ids and indices
+            cell_df = pd.DataFrame(cell_ids, columns = ["CancID"])
+            cell_df["cell_index"] = cell_df.index
+            # create dataframe of test positions
+            test_positions = pd.DataFrame(test_pos, columns = ["drug_index", "cell_index"])
+            # match drug and cell id indices with test positions 
+            temp_test_positions = pd.merge(test_positions, drug_df, how = "left", on = "drug_index")
+            final_test_positions = pd.merge(temp_test_positions, cell_df, how = "left", on = "cell_index")
+            # add normalized true values
+            final_df = pd.concat([final_test_positions, pd.DataFrame(test_values, columns = ["True"])], axis=1)
+            # reverse normalization of true values
+            final_df["True"] = final_df["True"].apply(lambda x: math.log(((1-x)/x)**-10))
+            # add normalized predicted values
+            final_df = pd.concat([final_df, pd.DataFrame(test_predict, columns = ["Pred"])], axis=1)
+            # reverse normalization of predicted values
+            final_df["Pred"] = final_df["Pred"].apply(lambda x: math.log(((1-x)/x)**-10))
+            # drop columns
+            true_pred_df = final_df.drop(columns = ["drug_index", "cell_index"])
+            # save predictions - long format
+            true_pred_df.to_csv(str(args.output_dir) + "/" + "raw_predictions.csv", index=False)    
+        
         output_file.close()
     
     # Supervisor HPO
