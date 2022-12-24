@@ -248,9 +248,10 @@ def run(gParameters):
                 print("find best, loss: %g r2: %g pearson: %g rmse: %g spearman: %g ******" % (test_loss, test_r2, test_pcc, test_rmse, test_scc))
                 # save scores associated with lowest validation loss
                 val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
-                os.system("rm {}/*".format(args.ckpt_directory))
-                saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
-                print("Saved!")
+                # CKPT HERE tsb #
+                #os.system("rm {}/*".format(args.ckpt_directory))
+                #saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
+                #print("Saved!")
                 min_loss = valid_loss
                 count = 0
             else:
