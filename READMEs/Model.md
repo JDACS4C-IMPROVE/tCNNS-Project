@@ -1,5 +1,5 @@
-# GraphDRP
-GraphDRP is a Graph Convolutional Networks for Drug Response Prediction.
+# tCNNS
+Twin convolutional neural network for drugs in SMILES format.
 
 
 ## Structure
@@ -13,7 +13,7 @@ The primary data sources that have been used to construct datasets for model tra
 
 
 ## Data and preprocessing
-CCL omics data and treatment response data (IC50) were downloaded from the GDSC website. Refer to [Data](Data.md) for more info regarding the raw data provided with the original GraphDRP model repo and preprocessing scripts allowing to generate ML data for model training and testing.
+CCL omics data and treatment response data (IC50) were downloaded from the GDSC website. Refer to [Data](Data.md) for more info regarding the raw data provided with the original tCNNS model repo and preprocessing scripts allowing to generate ML data for model training and testing.
 
 
 ## Evaluation
@@ -25,10 +25,10 @@ Three evaluation schemes were used for the analysis of prediction performance.
 
 
 ## URLs
-- Original GitHub: https://github.com/hauldhut/GraphDRP
-- IMPROVE GitHub: https://github.com/JDACS4C-IMPROVE/GraphDRP/tree/develop
-- Data: https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/GraphDRP/
+- [Original GitHub](https://github.com/Lowpassfilter/tCNNS-Project)
+- [IMPROVE GitHub](https://github.com/JDACS4C-IMPROVE/tCNNS-Project/tree/develop)
+- [Data](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/)
 
 
 ## Reference
-Nguyen, T.-T. et al. Graph convolutional networks for drug response prediction. *IEEE/ACM Trans Comput Biol Bioinform*. Jan-Feb 2022;19(1):146-154.
+Liu, P., Li, H., Li, S., & Leung, K. S. (2019). Improving prediction of phenotypic drug response on cancer cell lines using deep convolutional network. BMC bioinformatics, 20(1), 408. https://doi.org/10.1186/s12859-019-2910-6
