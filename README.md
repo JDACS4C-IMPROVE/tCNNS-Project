@@ -1,8 +1,25 @@
 # tCNNS-Project
-test
-test
+Twin convolutional neural network for drugs in SMILES format.
 
+## Model
 
-test today
-test today today
-test 10202022
+See [Model](READMEs/Model.md) for more details.
+
+## Data
+
+See [Data](READMEs/Data.md) for more details.
+
+## Preprocessing input data
+
+```
+python preprocess.py
+```
+
+## Training the model
+
+```
+python tcnns_baseline_tensorflow.py
+```
+
+Hyperparameters of the model can be adjusted in this file `tcnns_default_model.txt`.
+
