@@ -21,5 +21,5 @@ python preprocess.py
 python tcnns_baseline_tensorflow.py
 ```
 
-Hyperparameters of the model can be adjusted in this file `tcnns_default_model.txt`.
+Hyperparameters of the model can be adjusted in `tcnns_default_model.txt`.
 
