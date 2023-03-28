@@ -105,11 +105,12 @@ def run(gParameters):
     
     # get data from server or candle
     data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = None)
+    #data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = "data_processed")
     #print(data_file_path)
 
-    drug_smile_dict = np.load(args.data_dir + "/data_processed/" + args.drug_file, encoding="latin1", allow_pickle=True).item()
-    drug_cell_dict = np.load(args.data_dir + "/data_processed/" + args.response_file, encoding="latin1", allow_pickle=True).item()
-    cell_mut_dict = np.load(args.data_dir + "/data_processed/" + args.cell_file, encoding="latin1", allow_pickle=True).item()
+    drug_smile_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.drug_file), encoding="latin1", allow_pickle=True).item()
+    drug_cell_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.response_file), encoding="latin1", allow_pickle=True).item()
+    cell_mut_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.cell_file), encoding="latin1", allow_pickle=True).item()
 
     # define variables
     c_chars = drug_smile_dict["c_chars"]
@@ -248,10 +249,9 @@ def run(gParameters):
                 print("find best, loss: %g r2: %g pearson: %g rmse: %g spearman: %g ******" % (test_loss, test_r2, test_pcc, test_rmse, test_scc))
                 # save scores associated with lowest validation loss
                 val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
-                # CKPT HERE tsb #
-                #os.system("rm {}/*".format(args.ckpt_directory))
-                #saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
-                #print("Saved!")
+                os.system("rm {}/*".format(args.ckpt_directory))
+                saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
+                print("Saved!")
                 min_loss = valid_loss
                 count = 0
             else:
@@ -291,6 +291,7 @@ def run(gParameters):
     print("\nIMPROVE_RESULT val_loss:\t{}\n".format(val_scores["val_loss"]))
     with open(Path(args.output_dir) / "scores.json", "w", encoding="utf-8") as f:
         json.dump(val_scores, f, ensure_ascii=False, indent=4)
+
 
 def main():
     gParameters = initialize_parameters()
