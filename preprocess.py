@@ -6,9 +6,11 @@ import numpy as np
 import numbers
 import h5py
 import math
-#import candle
 from pathlib import Path
+import candle
+import tcnns
 
+file_path = os.path.dirname(os.path.realpath(__file__))
 
 def is_not_float(string_list):
     try:
@@ -21,7 +23,6 @@ def is_not_float(string_list):
 """
 The following 4 function is used to preprocess the drug data. We download the drug list manually, and download the SMILES format using pubchempy. Since this part is time consuming, I write the cids and SMILES into a csv file. 
 """
-
 def load_drug_list():
     #filename = folder + "Drug_listTue Oct 31 03_03_04 2017.csv"
     filename = folder + "Druglist.csv"
@@ -139,9 +140,12 @@ def smiles_to_onehot(smiles, c_chars, c_length):
         c_ndarray[i, ...] = onehot_encode(c_chars, smiles[i], c_length)
     return c_ndarray
 
-def load_as_ndarray():
-    reader = csv.reader(open(str(datadir) + "/" + "drug_smiles.csv"))
-    next(reader, None)
+def load_as_ndarray(folder, raw_data_subdir, raw_drug_features_file):
+    #reader = csv.reader(open(str(datadir) + "/" + "drug_smiles.csv"))
+    reader = csv.reader(open(os.path.join(folder, raw_data_subdir, raw_drug_features_file)))
+    #next(reader, None)
+    column_names = next(reader, None)
+    print(column_names)
     smiles = np.array(list(reader), dtype=np.str)
     return smiles
 
@@ -151,8 +155,8 @@ def charsets(smiles):
     i_chars = list(reduce(union, map(string2smiles_list, list(smiles[:, 3]))))
     return c_chars, i_chars
 
-def save_drug_smiles_onehot():
-    smiles = load_as_ndarray()
+def save_drug_smiles_onehot(filepath, raw_data_subdir, raw_drug_features_file, data_subdir, drug_file):
+    smiles = load_as_ndarray(filepath, raw_data_subdir, raw_drug_features_file)
     # we will abandon isomerics smiles from now on
     c_chars, _ = charsets(smiles)
     c_length = max(map(len, map(string2smiles_list, list(smiles[:, 2]))))
@@ -175,20 +179,23 @@ def save_drug_smiles_onehot():
     print(drug_cids.shape)
     print(canonical.shape)
 
-    np.save(str(outdir) + "/" + "drug_onehot_smiles.npy", save_dict)
+    #np.save(str(outdir) + "/" + "drug_onehot_smiles.npy", save_dict)
+    np.save(os.path.join(filepath, data_subdir, drug_file), save_dict)
     print("finish saving drug onehot smiles data:")
     return drug_names, drug_cids, canonical
 
 """
 The following part will prepare the mutation features for the cell.
 """
-
-def save_cell_mut_matrix():
+def save_cell_mut_matrix(filepath, raw_data_subdir, raw_genetic_features_file, data_subdir, cell_file):
     #f = open(folder + "PANCANCER_Genetic_feature_Tue Oct 31 03_00_35 2017.csv")
-    f = open(str(datadir) + "/" + "PANCANCER_Genetic_feature.csv")
+    #f = open(str(datadir) + "/" + "PANCANCER_Genetic_feature.csv")
+    f = open(os.path.join(filepath, raw_data_subdir, raw_genetic_features_file))
     reader = csv.reader(f)
     #reader.next()
-    next(reader, None)
+    #next(reader, None)
+    column_names = next(reader, None)
+    print(column_names)
     cell_dict = {}
     mut_dict = {}
     id_dict = {}
@@ -264,7 +271,8 @@ def save_cell_mut_matrix():
     print(cell_names.shape)
     print(mut_names.shape)
     print(matrix.shape)
-    np.save(str(outdir) + "/" + "cell_mut_matrix.npy", save_dict)
+    #np.save(str(outdir) + "/" + "cell_mut_matrix.npy", save_dict)
+    np.save(os.path.join(filepath, data_subdir, cell_file), save_dict)
     print("finish saving cell mut data:")
 
     return matrix, cell_names, mut_names, cell_id
@@ -272,13 +280,15 @@ def save_cell_mut_matrix():
 """
 This part is used to extract the drug - cell interaction strength. it contains IC50, AUC, Max conc, RMSE, Z_score
 """
-
-def save_drug_cell_matrix():
+def save_drug_cell_matrix(filepath, raw_data_subdir, raw_drug_features_file, raw_genetic_features_file, raw_drug_response_file, 
+                          data_subdir, drug_file, cell_file, response_file):
     #f = open(folder + "PANCANCER_IC_Tue Oct 31 02_59_53 2017.csv")
-    f = open(str(datadir) + "/" + "PANCANCER_IC.csv")
+    #f = open(str(datadir) + "/" + "PANCANCER_IC.csv")
+    f = open(os.path.join(filepath, raw_data_subdir, raw_drug_response_file))
     reader = csv.reader(f)
     #reader.next()
-    next(reader, None)
+    column_names = next(reader, None)
+    print(column_names)
 
     drug_dict = {}
     cell_dict = {}
@@ -319,8 +329,8 @@ def save_drug_cell_matrix():
     inv_drug_dict = {v:k for k,v in drug_dict.items()}
     inv_cell_dict = {v:k for k,v in cell_dict.items()}
     
-    drug_names, drug_cids, canonical = save_drug_smiles_onehot()
-    cell_mut_matrix, cell_names, mut_names, cell_ids = save_cell_mut_matrix()
+    drug_names, drug_cids, canonical = save_drug_smiles_onehot(filepath, raw_data_subdir, raw_drug_features_file, data_subdir, drug_file)
+    cell_mut_matrix, cell_names, mut_names, cell_ids = save_cell_mut_matrix(filepath, raw_data_subdir, raw_genetic_features_file, data_subdir, cell_file)
     
     d_ids = [drug_dict[i] for i in drug_names]
     c_ids = [cell_dict[i] for i in cell_ids]
@@ -349,13 +359,42 @@ def save_drug_cell_matrix():
     print(sub_matrix.shape)
     print(existance.shape)
    
-    np.save(str(outdir) + "/" + "drug_cell_interaction.npy", save_dict)
+    #np.save(str(outdir) + "/" + "drug_cell_interaction.npy", save_dict)
+    np.save(os.path.join(filepath, data_subdir, response_file), save_dict)
     print("finish saving drug cell interaction data:")
     return sub_matrix
 
-folder = Path(__file__).resolve().parent
-datadir = folder/f"./data"
-outdir = folder/f"./data_processed"
-print(outdir)
-os.makedirs(outdir, exist_ok=True)
-save_drug_cell_matrix()
+def initialize_parameters(default_model="tcnns_default_model.txt"):
+
+    # Build benchmark object
+    common = tcnns.tCNNS(
+        file_path,
+        default_model,
+        "tensorflow",
+        prog="twin Convolutional Neural Network for drugs in SMILES format (tCNNS)",
+        desc="tCNNS drug response prediction model",
+    )
+
+    # Initialize parameters
+    gParameters = candle.finalize_parameters(common)
+
+    return gParameters
+
+def run(gParameters): 
+
+    args = candle.ArgumentStruct(**gParameters)
+    #folder = Path(__file__).resolve().parent
+    #datadir = folder/f"./data"
+    #outdir = folder/f"./data_processed"
+    #print(outdir)
+    #os.makedirs(outdir, exist_ok=True)
+    save_drug_cell_matrix(file_path, args.raw_data_subdir, args.raw_drug_features_file, args.raw_genetic_features_file, 
+                          args.raw_drug_response_file, args.data_subdir, args.drug_file, args.cell_file, args.response_file)
+
+def main():
+    gParameters = initialize_parameters()
+    run(gParameters)
+    print("Done.")
+
+if __name__ == "__main__":
+    main()
