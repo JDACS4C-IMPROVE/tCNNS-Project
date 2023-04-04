@@ -54,10 +54,10 @@ def Spearman(real, predicted):
 # moved from batcher.py
 def load_data(batch_size, label_list, positions, response_dict, smiles_canonical, mutations, train_size, val_size):
     size = positions.shape[0]
-    len1 = int(size * train_size)
-    len2 = int(size * val_size)
     assert 0.0 <= train_size <= 1.0, "Training set size must be between 0.0 and 1.0."
     assert train_size <= val_size <= 1.0, "Validation set size must be between train_size and 1.0."
+    len1 = int(size * train_size)
+    len2 = int(size * val_size)
 
     train_pos = positions[0 : len1]
     valid_pos = positions[len1 : len2]
