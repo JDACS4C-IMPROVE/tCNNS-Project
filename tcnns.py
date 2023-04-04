@@ -5,8 +5,7 @@ file_path = os.path.dirname(os.path.realpath(__file__))
 
 # additional definitions
 additional_definitions = [
-    {
-        "name": "drug_conv_width",
+    {   "name": "drug_conv_width",
         "type": int,
         "nargs": "+",
         "help": "convolution width for each drug convolutional layer",
@@ -32,6 +31,14 @@ additional_definitions = [
     {   "name": "min_loss",
         "type": float, 
         "help": "value for initial minimum loss used for early stopping",
+    },
+    {   "name": "train_size",
+        "type": float, 
+        "help": "value for proportion of samples to be used for training; must be a value from 0.0 to 1.0",
+    },
+    {   "name": "val_size",
+        "type": float, 
+        "help": "value for proportion of samples to be used for validation; must be a value from train_size to 1.0",
     },
     {   "name": "cell_conv_width",
         "type": int,
@@ -66,7 +73,11 @@ additional_definitions = [
     },
     {   "name": "processed_data",
         "type": str, 
-        "help": "file of compressed preprocessed data on FTP site",
+        "help": "file of compressed preprocessed data",
+    },
+    {   "name": "original_data",
+        "type": str, 
+        "help": "file of compressed original data before preprocessing",
     },
     {   "name": "data_subdir",
         "type": str, 
@@ -87,7 +98,11 @@ additional_definitions = [
     {   "name": "raw_drug_response_file",
         "type": str, 
         "help": "name of file containing drug response data",
-    },       
+    },
+    {   "name": "num_epochs",
+        "type": int, 
+        "help": "value for the number of epochs to use to stop training if the RMSE on the validation set does not decrease",
+    },     
     {
         "name": "label_name",
         "type": str,
@@ -101,7 +116,7 @@ required = [
     "data_url",
     "model_name",
     "dense",
-    "epochs",
+    #"epochs",
     "batch_size",
     "dropout",
     "learning_rate",
@@ -120,4 +135,4 @@ class tCNNS(candle.Benchmark):
         if required is not None: 
             self.required = set(required)
         if additional_definitions is not None:
-            self.additional_definisions = additional_definitions
+            self.additional_definitions = additional_definitions

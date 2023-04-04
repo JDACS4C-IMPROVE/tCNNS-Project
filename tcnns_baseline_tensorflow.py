@@ -52,11 +52,13 @@ def Spearman(real, predicted):
     return rs
 
 # moved from batcher.py
-def load_data(batch_size, label_list, positions, response_dict, smiles_canonical, mutations):
+def load_data(batch_size, label_list, positions, response_dict, smiles_canonical, mutations, train_size, val_size):
     size = positions.shape[0]
-    len1 = int(size * 0.8)
-    len2 = int(size * 0.9)
-    
+    len1 = int(size * train_size)
+    len2 = int(size * val_size)
+    assert 0.0 <= train_size <= 1.0, "Training set size must be between 0.0 and 1.0."
+    assert train_size <= val_size <= 1.0, "Validation set size must be between train_size and 1.0."
+
     train_pos = positions[0 : len1]
     valid_pos = positions[len1 : len2]
     test_pos = positions[len2 : ]
@@ -76,6 +78,7 @@ def load_data(batch_size, label_list, positions, response_dict, smiles_canonical
     train = Batch(batch_size, value, drug_smile, mutations, train_pos)
     valid = Batch(batch_size, value, drug_smile, mutations, valid_pos)
     test = Batch(batch_size, value, drug_smile, mutations, test_pos)
+    
     return train, valid, test, test_pos
 
 def initialize_parameters(default_model="tcnns_default_model.txt"):
@@ -211,13 +214,13 @@ def run(gParameters):
 
     # create train, valid, and test datasets
     #train, valid, test = load_data(args.batch_size, ['IC50'])
-    train, valid, test, test_pos = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut)
+    train, valid, test, test_pos = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
 
     # initialize saver object
     saver = tf.train.Saver(var_list=tf.trainable_variables())
     
     # file to store results
-    output_file = open(str(args.output_dir) + "/" + "result_all.txt", "a")
+    output_file = open(os.path.join(args.output_dir, "result_all.txt"), "a")
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -233,7 +236,7 @@ def run(gParameters):
         epoch = 0
         min_loss = args.min_loss
         count = 0
-        while count < 10:
+        while count < args.num_epochs: 
             train.reset()
             step = 0
             while(train.available()):
@@ -250,7 +253,7 @@ def run(gParameters):
                 # save scores associated with lowest validation loss
                 val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
                 os.system("rm {}/*".format(args.ckpt_directory))
-                saver.save(sess, args.ckpt_directory + "/" + "result.ckpt")
+                saver.save(sess, os.path.join(args.ckpt_directory, "result.ckpt"))
                 print("Saved!")
                 min_loss = valid_loss
                 count = 0
@@ -283,7 +286,7 @@ def run(gParameters):
             # drop columns
             true_pred_df = final_df.drop(columns = ["drug_index", "cell_index"])
             # save predictions - long format
-            true_pred_df.to_csv(str(args.output_dir) + "/" + "raw_predictions.csv", index=False)    
+            true_pred_df.to_csv(os.path.join(args.output_dir, "raw_predictions.csv"), index=False)
         
         output_file.close()
     
