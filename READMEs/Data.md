@@ -17,7 +17,7 @@ The raw data is downloaded from GDSC website (version 6.0) and refers here to th
 1) Dose-independent drug response values.
 `PANCANCER_IC.csv`: drug and cell IDs, IC50 values and other metadata (223 drugs and 948 cell lines).
 2) Cancer sample information. `PANCANCER_Genetic_feature.csv`: 735 binary features that include mutations and copy number alterations.
-3) Drug information. `drug_smiles.csv`: SMILES strings of drug molecules. The canonical SMILES were retrieved from PubChem using CIDs (`Druglist.csv`) or from LINCS if not available in PubChem. The script `preprocess.py` provides functions to generate this file.
+3) Drug information. `drug_smiles.csv`: SMILES strings of drug molecules. The canonical SMILES were retrieved from PubChem using CIDs (`Druglist.csv`) or from LINCS if not available in PubChem. The script `preprocess.py` provides functions to download CIDs and SMILES using PubChem's APIs.
 
 The raw data is available in this FTP location: https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/tcnns_data.tar.gz
 
