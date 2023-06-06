@@ -10,6 +10,10 @@ from sklearn.metrics import mean_squared_error
 from scipy import stats
 import pandas as pd
 import math
+import improve_utils
+from improve_utils import improve_globals as ig
+import time
+import subprocess
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -68,8 +72,6 @@ def load_data(batch_size, label_list, positions, response_dict, smiles_canonical
     value = np.zeros((value_shape[0], value_shape[1], len(label_list)))
 
     for i in range(len(label_list)):
-        key_name = label_list[i]
-        assert key_name in response_dict, f"key {key_name} not in dictionary"
         #value[ :, :, i ] = drug_cell_dict[label_list[i]]
         value[ :, :, i ] = response_dict[label_list[i]]
     #drug_smile = canonical
@@ -79,7 +81,8 @@ def load_data(batch_size, label_list, positions, response_dict, smiles_canonical
     valid = Batch(batch_size, value, drug_smile, mutations, valid_pos)
     test = Batch(batch_size, value, drug_smile, mutations, test_pos)
     
-    return train, valid, test, test_pos
+    #return train, valid, test, test_pos
+    return train, valid, test
 
 def initialize_parameters(default_model="tcnns_default_model.txt"):
 
@@ -111,6 +114,12 @@ def run(gParameters):
     #data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = "data_processed")
     #print(data_file_path)
 
+    # check files in data processed folder
+    proc = subprocess.Popen([f"ls {args.data_dir}/{args.data_subdir}/*"], stdout=subprocess.PIPE, shell=True)   
+    (out, err) = proc.communicate()
+    print("List of files in data processed folder", out.decode('utf-8'))
+    
+    # load processed data
     drug_smile_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.drug_file), encoding="latin1", allow_pickle=True).item()
     drug_cell_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.response_file), encoding="latin1", allow_pickle=True).item()
     cell_mut_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.cell_file), encoding="latin1", allow_pickle=True).item()
@@ -118,15 +127,16 @@ def run(gParameters):
     # define variables
     c_chars = drug_smile_dict["c_chars"]
     drug_names = drug_smile_dict["drug_names"]
-    drug_cids = drug_smile_dict["drug_cids"]
+    drug_cids = drug_smile_dict["drug_cids"] # improve_chem_id
     canonical = drug_smile_dict["canonical"]
     canonical = np.transpose(canonical, (0, 2, 1))
     cell_names = cell_mut_dict["cell_names"]
     mut_names = cell_mut_dict["mut_names"]
     cell_mut = cell_mut_dict["cell_mut"]
-    cell_ids = drug_cell_dict["cell_ids"]
+    cell_ids = drug_cell_dict["cell_ids"] # improve_sample_id
     all_positions = drug_cell_dict["positions"] # array of zipped object
     all_positions = np.array(list(all_positions.tolist()))
+    np.random.seed(args.rng_seed)
     np.random.shuffle(all_positions)
 
     length_smiles = len(canonical[0])
@@ -214,7 +224,8 @@ def run(gParameters):
 
     # create train, valid, and test datasets
     #train, valid, test = load_data(args.batch_size, ['IC50'])
-    train, valid, test, test_pos = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
+    #train, valid, test, test_pos = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
+    train, valid, test = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
 
     # initialize saver object
     saver = tf.train.Saver(var_list=tf.trainable_variables())
@@ -234,9 +245,12 @@ def run(gParameters):
         test_values, test_drugs, test_cells = test.whole_batch()
         valid_values, valid_drugs, valid_cells = valid.whole_batch()
         epoch = 0
+        best_epoch = 0
         min_loss = args.min_loss
         count = 0
+        epoch_time = []
         while count < args.num_epochs: 
+            epoch_start_time = time.time()
             train.reset()
             step = 0
             while(train.available()):
@@ -249,7 +263,8 @@ def run(gParameters):
             if valid_loss < min_loss:
                 test_loss, test_r2, test_pcc, test_rmse, test_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
                 test_predict = sess.run(y_conv, feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
-                print("find best, loss: %g r2: %g pearson: %g rmse: %g spearman: %g ******" % (test_loss, test_r2, test_pcc, test_rmse, test_scc))
+                print("epoch with lowest val_loss: %d, loss: %g r2: %g pearson: %g rmse: %g spearman: %g ******" % (epoch, test_loss, test_r2, test_pcc, test_rmse, test_scc))
+                best_epoch = epoch
                 # save scores associated with lowest validation loss
                 val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
                 os.system("rm {}/*".format(args.ckpt_directory))
@@ -259,6 +274,13 @@ def run(gParameters):
                 count = 0
             else:
                 count = count + 1
+            epoch_end_time = time.time()
+            epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)
+
+        print(f"Total number of epochs: {epoch}.")
+        print(f"Best epoch with lowest val_loss: {best_epoch}.")
+        print(f"Runtime for first epoch: {epoch_time[0]}")
+        print(f"Average runtime per epoch: {sum(epoch_time)/len(epoch_time)}")
 
         if test_r2 > -2:
             output_file.write("test loss: %g, test r2: %g, test pearson: %g, test rmse: %g, test spearman: %g\n"%(test_loss, test_r2, test_pcc, test_rmse, test_scc))
@@ -271,7 +293,7 @@ def run(gParameters):
             cell_df = pd.DataFrame(cell_ids, columns = ["CancID"])
             cell_df["cell_index"] = cell_df.index
             # create dataframe of test positions
-            test_positions = pd.DataFrame(test_pos, columns = ["drug_index", "cell_index"])
+            test_positions = pd.DataFrame(test.positions, columns = ["drug_index", "cell_index"])
             # match drug and cell id indices with test positions 
             temp_test_positions = pd.merge(test_positions, drug_df, how = "left", on = "drug_index")
             final_test_positions = pd.merge(temp_test_positions, cell_df, how = "left", on = "cell_index")
@@ -297,9 +319,12 @@ def run(gParameters):
 
 
 def main():
+    start = time.time()
     gParameters = initialize_parameters()
     run(gParameters)
     print("Done.")
+    end = time.time()
+    print("Total runtime: {}".format(end-start))
 
 if __name__ == "__main__":
     main()
