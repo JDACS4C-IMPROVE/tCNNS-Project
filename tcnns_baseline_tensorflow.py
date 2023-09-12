@@ -110,7 +110,7 @@ def run(gParameters):
         print("GPU not available")
     
     # get data from server or candle
-    data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = None)
+    #data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = None)
     #data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = "data_processed")
     #print(data_file_path)
 
@@ -209,7 +209,11 @@ def run(gParameters):
             fc_h = tf.nn.relu(tf.matmul(fc_drop, fc_w) + fc_b)
             fc_drop = tf.nn.dropout(fc_h, keep_prob)
 
-    y_conv = tf.nn.sigmoid(tf.matmul(fc_drop, fc_w) + fc_b)
+    #y_conv = tf.nn.sigmoig(tf.matmul(fc_drop, fc_w) + fc_b, name="output_tensor")
+    if args.label_name == "IC50":
+        y_conv = tf.nn.sigmoid(tf.matmul(fc_drop, fc_w) + fc_b, name="output_tensor")
+    else:
+        y_conv = tf.nn.xw_plus_b(fc_drop, fc_w, fc_b, name="output_tensor")
 
     # define loss
     loss = tf.losses.mean_squared_error(scores, y_conv)
@@ -282,7 +286,7 @@ def run(gParameters):
         print(f"Runtime for first epoch: {epoch_time[0]}")
         print(f"Average runtime per epoch: {sum(epoch_time)/len(epoch_time)}")
 
-        if test_r2 > -2:
+        if test_r2 > -2: # TO DO add condition if no test_r2
             output_file.write("test loss: %g, test r2: %g, test pearson: %g, test rmse: %g, test spearman: %g\n"%(test_loss, test_r2, test_pcc, test_rmse, test_scc))
             print("Saved!!!!!")
 
@@ -299,12 +303,13 @@ def run(gParameters):
             final_test_positions = pd.merge(temp_test_positions, cell_df, how = "left", on = "cell_index")
             # add normalized true values
             final_df = pd.concat([final_test_positions, pd.DataFrame(test_values, columns = ["True"])], axis=1)
-            # reverse normalization of true values
-            final_df["True"] = final_df["True"].apply(lambda x: math.log(((1-x)/x)**-10))
             # add normalized predicted values
             final_df = pd.concat([final_df, pd.DataFrame(test_predict, columns = ["Pred"])], axis=1)
-            # reverse normalization of predicted values
-            final_df["Pred"] = final_df["Pred"].apply(lambda x: math.log(((1-x)/x)**-10))
+            if args.label_name == "IC50":
+                # reverse normalization of true values
+                final_df["True"] = final_df["True"].apply(lambda x: math.log(((1-x)/x)**-10))
+                # reverse normalization of predicted values
+                final_df["Pred"] = final_df["Pred"].apply(lambda x: math.log(((1-x)/x)**-10))
             # drop columns
             true_pred_df = final_df.drop(columns = ["drug_index", "cell_index"])
             # save predictions - long format
