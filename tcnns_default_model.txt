@@ -12,11 +12,7 @@ raw_drug_features_file = 'drug_smiles.csv'
 raw_drug_response_file = 'PANCANCER_IC.csv'
 #use_original_data = True
 #output_dir = 'result_all'
-<<<<<<< HEAD
 ckpt_directory = 'model'
-=======
-ckpt_directory = '/candle_data_dir/model'
->>>>>>> a9c568d02965a933f7c967f168542c41628f8062
 model_name = 'tCNNS'
 dense = [1024, 1024, 1024]
 learning_rate = 0.0001
