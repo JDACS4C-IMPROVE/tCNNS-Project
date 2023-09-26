@@ -105,7 +105,9 @@ def run(gParameters):
     args = candle.ArgumentStruct(**gParameters)
 
     if tf.test.gpu_device_name():
-        print("Default GPU Device:{}".format(tf.test.gpu_device_name()))
+        if os.getenv("CUDA_VISIBLE_DEVICES") is not None:
+            print("CUDA_VISIBLE_DEVICES:", os.getenv("CUDA_VISIBLE_DEVICES"))
+        print("GPU Device:{}".format(tf.test.gpu_device_name()))
     else:
         print("GPU not available")
     
@@ -271,8 +273,8 @@ def run(gParameters):
                 best_epoch = epoch
                 # save scores associated with lowest validation loss
                 val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
-                os.system("rm {}/*".format(args.ckpt_directory))
-                saver.save(sess, os.path.join(args.ckpt_directory, "result.ckpt"))
+                os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
+                saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
                 print("Saved!")
                 min_loss = valid_loss
                 count = 0
