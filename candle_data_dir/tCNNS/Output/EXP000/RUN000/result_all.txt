@@ -1,0 +1,2 @@
+test loss: 0.00150943, test r2: 0.672469, test pearson: 0.904812, test rmse: 0.0388514, test spearman: 0.882132
+test loss: 0.00485967, test r2: -0.0544963, test pearson: 0.120023, test rmse: 0.0697113, test spearman: 0.075189
