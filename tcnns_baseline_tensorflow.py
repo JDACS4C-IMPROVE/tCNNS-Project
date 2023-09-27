@@ -17,8 +17,8 @@ import subprocess
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 
-def weight_variable(shape, std_dev):
-    initial = tf.truncated_normal(shape, stddev=std_dev)
+def weight_variable(shape, std_dev, rseed):
+    initial = tf.truncated_normal(shape, stddev=std_dev, seed=rseed)
     return tf.Variable(initial)
 
 def bias_variable(shape, bias_constant):
@@ -49,7 +49,6 @@ def Pearson(a, b):
     down = tf.multiply(tf.sqrt(real_var), tf.sqrt(pred_var))
     return tf.div(up, down)
 
-# added function
 def Spearman(real, predicted):
     rs = tf.py_function(stats.spearmanr, [tf.cast(predicted, tf.float32), 
                        tf.cast(real, tf.float32)], Tout = tf.float32)
@@ -57,6 +56,7 @@ def Spearman(real, predicted):
 
 # moved from batcher.py
 def load_data(batch_size, label_list, positions, response_dict, smiles_canonical, mutations, train_size, val_size):
+    """Splits data into train, test, and validation datasets and creates batch objects for each dataset"""
     size = positions.shape[0]
     assert 0.0 <= train_size <= 1.0, "Training set size must be between 0.0 and 1.0."
     assert train_size <= val_size <= 1.0, "Validation set size must be between train_size and 1.0."
@@ -67,21 +67,18 @@ def load_data(batch_size, label_list, positions, response_dict, smiles_canonical
     valid_pos = positions[len1 : len2]
     test_pos = positions[len2 : ]
 
-    #value_shape = drug_cell_dict["IC50"].shape
     value_shape = response_dict[label_list[0]].shape
     value = np.zeros((value_shape[0], value_shape[1], len(label_list)))
 
     for i in range(len(label_list)):
-        #value[ :, :, i ] = drug_cell_dict[label_list[i]]
         value[ :, :, i ] = response_dict[label_list[i]]
-    #drug_smile = canonical
+    
     drug_smile = smiles_canonical
 
     train = Batch(batch_size, value, drug_smile, mutations, train_pos)
     valid = Batch(batch_size, value, drug_smile, mutations, valid_pos)
     test = Batch(batch_size, value, drug_smile, mutations, test_pos)
     
-    #return train, valid, test, test_pos
     return train, valid, test
 
 def initialize_parameters(default_model="tcnns_default_model.txt"):
@@ -111,15 +108,14 @@ def run(gParameters):
     else:
         print("GPU not available")
     
-    # get data from server or candle
-    #data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = None)
-    #data_file_path = candle.get_file(args.processed_data, args.data_url + args.processed_data, datadir = args.data_dir, cache_subdir = "data_processed")
-    #print(data_file_path)
+    if args.use_original_data:
+        # get data from server if processed original data is not available
+        candle.file_utils.get_file(args.processed_data, f"{args.data_url}/{args.processed_data}", cache_subdir = args.cache_subdir)
 
     # check files in data processed folder
     proc = subprocess.Popen([f"ls {args.data_dir}/{args.data_subdir}/*"], stdout=subprocess.PIPE, shell=True)   
     (out, err) = proc.communicate()
-    print("List of files in data processed folder", out.decode('utf-8'))
+    print("List of files in processed data folder", out.decode('utf-8'))
     
     # load processed data
     drug_smile_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.drug_file), encoding="latin1", allow_pickle=True).item()
@@ -128,26 +124,20 @@ def run(gParameters):
 
     # define variables
     c_chars = drug_smile_dict["c_chars"]
-    drug_names = drug_smile_dict["drug_names"]
-    drug_cids = drug_smile_dict["drug_cids"] # improve_chem_id
     canonical = drug_smile_dict["canonical"]
     canonical = np.transpose(canonical, (0, 2, 1))
-    cell_names = cell_mut_dict["cell_names"]
     mut_names = cell_mut_dict["mut_names"]
     cell_mut = cell_mut_dict["cell_mut"]
-    cell_ids = drug_cell_dict["cell_ids"] # improve_sample_id
     all_positions = drug_cell_dict["positions"] # array of zipped object
     all_positions = np.array(list(all_positions.tolist()))
     np.random.seed(args.rng_seed)
     np.random.shuffle(all_positions)
-
-    length_smiles = len(canonical[0])
-    num_cell_features = len(mut_names)
-    num_chars_smiles = len(c_chars)
-
-    print("Length of SMILES string: {}".format(length_smiles)) # length of smiles
-    print("Number of mutations: {}".format(num_cell_features)) # number of mutations
-    print("Number of unique characters in SMILES string: {}".format(num_chars_smiles)) # number of characters in smiles
+    length_smiles = len(canonical[0]) # length of smiles
+    num_cell_features = len(mut_names) # number of mutations
+    num_chars_smiles = len(c_chars) # number of characters in smiles
+    print("Length of SMILES string: {}".format(length_smiles))
+    print("Number of mutations: {}".format(num_cell_features))
+    print("Number of unique characters in SMILES string: {}".format(num_chars_smiles))
 
     # define model
     drug = tf.placeholder(tf.float32, shape=[None, length_smiles, num_chars_smiles])
@@ -160,14 +150,14 @@ def run(gParameters):
         if i == 0:
             drug_conv_out = args.drug_conv_out[i] 
             drug_conv_pool = args.drug_pool[i]
-            drug_conv_w = weight_variable([args.drug_conv_width[i], num_chars_smiles, drug_conv_out], args.std_dev)
+            drug_conv_w = weight_variable([args.drug_conv_width[i], num_chars_smiles, drug_conv_out], args.std_dev, args.rng_seed)
             drug_conv_b = bias_variable([drug_conv_out], args.bias_constant)
             drug_conv_h = tf.nn.relu(conv1d(drug, drug_conv_w, args.conv_stride) + drug_conv_b)
             drug_conv_p = max_pool_1d(drug_conv_h, [drug_conv_pool], [drug_conv_pool])
         else:
             drug_conv_out = args.drug_conv_out[i] 
             drug_conv_pool = args.drug_pool[i]
-            drug_conv_w = weight_variable([args.drug_conv_width[i], args.drug_conv_out[i-1], drug_conv_out], args.std_dev)
+            drug_conv_w = weight_variable([args.drug_conv_width[i], args.drug_conv_out[i-1], drug_conv_out], args.std_dev, args.rng_seed)
             drug_conv_b = bias_variable([drug_conv_out], args.bias_constant)
             drug_conv_h = tf.nn.relu(conv1d(drug_conv_p, drug_conv_w, args.conv_stride) + drug_conv_b)
             drug_conv_p = max_pool_1d(drug_conv_h, [drug_conv_pool], [drug_conv_pool])
@@ -178,41 +168,43 @@ def run(gParameters):
             cell_conv_out = args.cell_conv_out[i]
             cell_conv_pool = args.cell_pool[i]
             cell_tensor = tf.expand_dims(cell, 2)
-            cell_conv_w = weight_variable([args.cell_conv_width[i], 1, cell_conv_out], args.std_dev)
-            cell_conv_b = weight_variable([cell_conv_out], args.bias_constant)
+            cell_conv_w = weight_variable([args.cell_conv_width[i], 1, cell_conv_out], args.std_dev, args.rng_seed)
+            cell_conv_b = weight_variable([cell_conv_out], args.bias_constant, args.rng_seed)
             cell_conv_h = tf.nn.relu(conv1d(cell_tensor, cell_conv_w, args.conv_stride) + cell_conv_b)
             cell_conv_p = max_pool_1d(cell_conv_h, [cell_conv_pool], [cell_conv_pool])
         else: 
             cell_conv_out = args.cell_conv_out[i]
             cell_conv_pool = args.cell_pool[i]
             cell_tensor = tf.expand_dims(cell, 2)
-            cell_conv_w = weight_variable([args.cell_conv_width[i], args.cell_conv_out[i-1], cell_conv_out], args.std_dev)
-            cell_conv_b = weight_variable([cell_conv_out], args.bias_constant)
+            cell_conv_w = weight_variable([args.cell_conv_width[i], args.cell_conv_out[i-1], cell_conv_out], args.std_dev, args.rng_seed)
+            cell_conv_b = bias_variable([cell_conv_out], args.bias_constant)
             cell_conv_h = tf.nn.relu(conv1d(cell_conv_p, cell_conv_w, args.conv_stride) + cell_conv_b)
             cell_conv_p = max_pool_1d(cell_conv_h, [cell_conv_pool], [cell_conv_pool])
 
+    # merge drug and cell convolutional layers
     conv_merge = tf.concat([drug_conv_p, cell_conv_p], 1)
+    # reshape layer for fully connected layers
     shape = conv_merge.get_shape().as_list()
     conv_flat = tf.reshape(conv_merge, [-1, shape[1] * shape[2]])
 
     # define fully connected layers
     for i in range(0, len(args.dense)):
         if i == 0:
-            fc_w = weight_variable([shape[1] * shape[2], args.dense[i]], args.std_dev)
+            fc_w = weight_variable([shape[1] * shape[2], args.dense[i]], args.std_dev, args.rng_seed)
             fc_b = bias_variable([args.dense[i]], args.bias_constant)
             fc_h = tf.nn.relu(tf.matmul(conv_flat, fc_w) + fc_b)
             fc_drop = tf.nn.dropout(fc_h, keep_prob)
         elif i == (len(args.dense) - 1): 
-            fc_w = weight_variable([args.dense[i], 1], args.std_dev)
-            fc_b = weight_variable([1], args.std_dev)
+            fc_w = weight_variable([args.dense[i], 1], args.std_dev, args.rng_seed)
+            fc_b = weight_variable([1], args.std_dev, args.rng_seed)
         else:
-            fc_w = weight_variable([args.dense[i], args.dense[i]], args.std_dev)
+            fc_w = weight_variable([args.dense[i], args.dense[i]], args.std_dev, args.rng_seed)
             fc_b = bias_variable([args.dense[i]], args.bias_constant)
             fc_h = tf.nn.relu(tf.matmul(fc_drop, fc_w) + fc_b)
             fc_drop = tf.nn.dropout(fc_h, keep_prob)
 
-    #y_conv = tf.nn.sigmoig(tf.matmul(fc_drop, fc_w) + fc_b, name="output_tensor")
-    if args.label_name == "IC50":
+    if args.out_activation == "sigmoid":
+        # use sigmoid function on output layer; recommended for original data's normalized IC50
         y_conv = tf.nn.sigmoid(tf.matmul(fc_drop, fc_w) + fc_b, name="output_tensor")
     else:
         y_conv = tf.nn.xw_plus_b(fc_drop, fc_w, fc_b, name="output_tensor")
@@ -228,17 +220,19 @@ def run(gParameters):
     rmse = tf.sqrt(loss)
     spearman = Spearman(scores, y_conv)
 
-    # create train, valid, and test datasets
-    #train, valid, test = load_data(args.batch_size, ['IC50'])
-    #train, valid, test, test_pos = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
-    train, valid, test = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
+    # if using original data:
+    if args.use_original_data:
+        # split data into train, valid, and test datasets
+        train, valid, test = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
+        # save test positions for inference
+        save_dict = {}
+        save_dict["positions"] = test.positions
+        np.save(os.path.join(args.data_dir, args.data_subdir, "test_positions.npy"), save_dict)
+        print("Saving test data indices for inference.")
 
     # initialize saver object
     saver = tf.train.Saver(var_list=tf.trainable_variables())
     
-    # file to store results
-    output_file = open(os.path.join(args.output_dir, "result_all.txt"), "a")
-
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
@@ -255,83 +249,115 @@ def run(gParameters):
         min_loss = args.min_loss
         count = 0
         epoch_time = []
-        while count < args.num_epochs: 
-            epoch_start_time = time.time()
-            train.reset()
-            step = 0
-            while(train.available()):
-                real_values, drug_smiles, cell_muts = train.mini_batch()
-                train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
-                step += 1
-            valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
-            print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
-            epoch += 1
-            if valid_loss < min_loss:
-                test_loss, test_r2, test_pcc, test_rmse, test_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
-                test_predict = sess.run(y_conv, feed_dict={drug:test_drugs, cell:test_cells, scores:test_values, keep_prob:1})
-                print("epoch with lowest val_loss: %d, loss: %g r2: %g pearson: %g rmse: %g spearman: %g ******" % (epoch, test_loss, test_r2, test_pcc, test_rmse, test_scc))
-                best_epoch = epoch
-                # save scores associated with lowest validation loss
-                val_scores = {"val_loss": float(valid_loss), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
-                os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
-                saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
-                print("Saved!")
-                min_loss = valid_loss
-                count = 0
+        val_scores = {}
+        # option only runs early stopping
+        if args.epochs == 0:
+            while count < args.es_epochs: 
+                epoch_start_time = time.time()
+                train.reset()
+                step = 0
+                while(train.available()):
+                    real_values, drug_smiles, cell_muts = train.mini_batch()
+                    train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
+                    step += 1
+                valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
+                print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
+                if valid_loss < min_loss:
+                    print("epoch with lowest val_loss: %d, loss: %g" % (epoch, valid_loss))
+                    best_epoch = epoch
+                    # save scores associated with lowest validation loss
+                    val_scores = {"val_loss": float(valid_loss), "r2": float(valid_r2), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
+                    os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
+                    saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                    print("Model saved!")
+                    min_loss = valid_loss
+                    count = 0
+                else:
+                    count = count + 1
+                epoch += 1
+                epoch_end_time = time.time()
+                epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)
+        else:
+            # option runs model for x epochs (no early stopping)
+            if args.es_epochs == 0:
+                if args.epochs == 0:
+                    print("Please specify number of epochs.")
+                else:
+                    for epoch in range(args.epochs):
+                        epoch_start_time = time.time()
+                        train.reset()
+                        step = 0
+                        while(train.available()):
+                            real_values, drug_smiles, cell_muts = train.mini_batch()
+                            train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
+                            step += 1
+                        valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
+                        print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
+                        if valid_loss < min_loss:
+                            print("epoch with lowest val_loss: %d, loss: %g" % (epoch, valid_loss))
+                            best_epoch = epoch
+                            # save scores associated with lowest validation loss
+                            val_scores = {"val_loss": float(valid_loss), "r2": float(valid_r2), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
+                            os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
+                            saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                            print("Model saved!")
+                            min_loss = valid_loss
+                        epoch_end_time = time.time()
+                        epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)    
             else:
-                count = count + 1
-            epoch_end_time = time.time()
-            epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)
+                # option runs model for x epochs and uses early stopping
+                while count < args.es_epochs:
+                    epoch_start_time = time.time()
+                    train.reset()
+                    step = 0
+                    while(train.available()):
+                        real_values, drug_smiles, cell_muts = train.mini_batch()
+                        train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
+                        step += 1
+                    valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
+                    print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
+                    if valid_loss < min_loss:
+                        print("epoch with lowest val_loss: %d, loss: %g" % (epoch, valid_loss))
+                        best_epoch = epoch
+                        # save scores associated with lowest validation loss
+                        val_scores = {"val_loss": float(valid_loss), "r2": float(valid_r2), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
+                        os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
+                        saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                        print("Saved!")
+                        min_loss = valid_loss
+                        count = 0
+                    else:
+                        count = count + 1
+                    epoch += 1
+                    if epoch == args.epochs:
+                        break    
+                    epoch_end_time = time.time()
+                    epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)
 
-        print(f"Total number of epochs: {epoch}.")
+        if args.epochs>0 and args.es_epochs>0:
+            print(f"Total number of epochs: {epoch}.")
+        else:
+            print(f"Total number of epochs: {epoch+1}.")
         print(f"Best epoch with lowest val_loss: {best_epoch}.")
         print(f"Runtime for first epoch: {epoch_time[0]}")
         print(f"Average runtime per epoch: {sum(epoch_time)/len(epoch_time)}")
-
-        if test_r2 > -2: # TO DO add condition if no test_r2
-            output_file.write("test loss: %g, test r2: %g, test pearson: %g, test rmse: %g, test spearman: %g\n"%(test_loss, test_r2, test_pcc, test_rmse, test_scc))
-            print("Saved!!!!!")
-
-            # get drug names and indices
-            drug_df = pd.DataFrame(drug_names, columns = ["DrugID"])
-            drug_df["drug_index"] = drug_df.index
-            # get cell ids and indices
-            cell_df = pd.DataFrame(cell_ids, columns = ["CancID"])
-            cell_df["cell_index"] = cell_df.index
-            # create dataframe of test positions
-            test_positions = pd.DataFrame(test.positions, columns = ["drug_index", "cell_index"])
-            # match drug and cell id indices with test positions 
-            temp_test_positions = pd.merge(test_positions, drug_df, how = "left", on = "drug_index")
-            final_test_positions = pd.merge(temp_test_positions, cell_df, how = "left", on = "cell_index")
-            # add normalized true values
-            final_df = pd.concat([final_test_positions, pd.DataFrame(test_values, columns = ["True"])], axis=1)
-            # add normalized predicted values
-            final_df = pd.concat([final_df, pd.DataFrame(test_predict, columns = ["Pred"])], axis=1)
-            if args.label_name == "IC50":
-                # reverse normalization of true values
-                final_df["True"] = final_df["True"].apply(lambda x: math.log(((1-x)/x)**-10))
-                # reverse normalization of predicted values
-                final_df["Pred"] = final_df["Pred"].apply(lambda x: math.log(((1-x)/x)**-10))
-            # drop columns
-            true_pred_df = final_df.drop(columns = ["drug_index", "cell_index"])
-            # save predictions - long format
-            true_pred_df.to_csv(os.path.join(args.output_dir, "raw_predictions.csv"), index=False)
-        
-        output_file.close()
     
     # Supervisor HPO
-    print("\nIMPROVE_RESULT val_loss:\t{}\n".format(val_scores["val_loss"]))
-    with open(Path(args.output_dir) / "scores.json", "w", encoding="utf-8") as f:
-        json.dump(val_scores, f, ensure_ascii=False, indent=4)
+    if len(val_scores) > 0:
+        print("\nIMPROVE_RESULT val_loss:\t{}\n".format(val_scores["val_loss"]))
+        with open(Path(args.output_dir) / "scores.json", "w", encoding="utf-8") as f:
+            json.dump(val_scores, f, ensure_ascii=False, indent=4)
+    else:
+        print("The val_loss did not improve from the min_loss after training. Results and model not saved.")
 
 
 def main():
     start = time.time()
     gParameters = initialize_parameters()
     run(gParameters)
-    print("Done.")
     end = time.time()
     print("Total runtime: {}".format(end-start))
+    print("Finished.")
 
 if __name__ == "__main__":
     main()
