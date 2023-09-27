@@ -1,2 +1,0 @@
-model_checkpoint_path: "/lambda_stor/homes/ac.sejones/test/tCNNS-Project/candle_data_dir/tCNNS/Output/EXP000/RUN000/model/result.ckpt"
-all_model_checkpoint_paths: "/lambda_stor/homes/ac.sejones/test/tCNNS-Project/candle_data_dir/tCNNS/Output/EXP000/RUN000/model/result.ckpt"
