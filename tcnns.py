@@ -99,7 +99,7 @@ additional_definitions = [
         "type": str, 
         "help": "name of file containing drug response data",
     },
-    {   "name": "num_epochs",
+    {   "name": "es_epochs",
         "type": int, 
         "help": "value for the number of epochs to use to stop training if the RMSE on the validation set does not decrease",
     },     
@@ -108,7 +108,42 @@ additional_definitions = [
         "type": str,
         "nargs": "+",
         "help": "drug response indicator (i.e. IC50 or AUC)",
-    },      
+    }, 
+    {
+        "name": "cache_subdir",
+        "type": str,
+        "help": "name of folder to store processed data from server",
+    }, 
+    {
+        "name": "use_original_data",
+        "type": bool,
+        "help": "indicates whether to use original data and processing code specific to this data",
+    },   
+    {
+        "name": "norm",
+        "type": bool,
+        "help": "indicates whether response values have been normalized",
+    },    
+    {
+        "name": "test_indices_file",
+        "type": str,
+        "help": "file containing indices for test split of original data",
+    },
+    {
+        "name": "model_weights_file",
+        "type": str,
+        "help": "file of trained model's weights",
+    },
+    {
+        "name": "drug_id",
+        "type": str,
+        "help": "drug identifier",
+    },
+        {
+        "name": "cell_id",
+        "type": str,
+        "help": "cell line identifier",
+    },
 ]
 
 # required definitions
@@ -116,12 +151,13 @@ required = [
     "data_url",
     "model_name",
     "dense",
-    #"epochs",
+    "epochs",
     "batch_size",
     "dropout",
     "learning_rate",
     "output_dir",
-    "ckpt_directory"
+    "ckpt_directory",
+    "out_activation"
 ]
 
 # initialize class
