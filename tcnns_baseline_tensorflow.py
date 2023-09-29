@@ -276,7 +276,7 @@ def run(gParameters):
                     count = count + 1
                 epoch += 1
                 epoch_end_time = time.time()
-                epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)
+                epoch_time.append(epoch_end_time - epoch_start_time)
         else:
             # option runs model for x epochs (no early stopping)
             if args.es_epochs == 0:
@@ -303,7 +303,7 @@ def run(gParameters):
                             print("Model saved!")
                             min_loss = valid_loss
                         epoch_end_time = time.time()
-                        epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)    
+                        epoch_time.append(epoch_end_time - epoch_start_time)    
             else:
                 # option runs model for x epochs and uses early stopping
                 while count < args.es_epochs:
@@ -329,10 +329,10 @@ def run(gParameters):
                     else:
                         count = count + 1
                     epoch += 1
-                    if epoch == args.epochs:
-                        break    
                     epoch_end_time = time.time()
-                    epoch_run_time = epoch_time.append(epoch_end_time - epoch_start_time)
+                    epoch_time.append(epoch_end_time - epoch_start_time)
+                    if epoch == args.epochs:
+                        break
 
         if args.epochs>0 and args.es_epochs>0:
             print(f"Total number of epochs: {epoch}.")
