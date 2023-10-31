@@ -1,9 +1,9 @@
 # tCNNS-Project
 Twin convolutional neural network for drugs in SMILES format.
 
-This model is curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE).
+This model has been curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE).
 
-The original code is [_here_](https://github.com/Lowpassfilter/tCNNS-Project).
+The original code can be found [_here_](https://github.com/Lowpassfilter/tCNNS-Project).
 
 ## Model
 
@@ -16,6 +16,7 @@ See [Data](READMEs/Data.md) for more details.
 ## Requirements
 
 - `conda`
+or
 - `singularity`
 
 ## Installation
@@ -48,12 +49,18 @@ singularity build --fakeroot tCNNS.sif tCNNS.def
 
 ## Example Usage 
 
-Set environment variable for folder to hold data, model, and results:
+### With Conda
+
+Environment variables:
+
+ * `CANDLE_DATA_DIR` - path to data, model, and results directory
+ * `CUDA_VISIBLE_DEVICES` - which GPUs should be used
+
+Set environment variables:
 ```sh
 export CANDLE_DATA_DIR=candle_data_dir
+export CUDA_VISIBLE_DEVICES=0
 ```
-
-### With Conda
 
 Preprocess:
 ```sh
@@ -72,11 +79,11 @@ bash infer.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR
 
 ### With Singularity
 
-To use the container, you must make your data directory available inside the container as `/candle_data_dir`.
+To use the container, you must make your `CANDLE_DATA_DIR` available inside the container as `/candle_data_dir`.
 
 Environment variables:
 
- * `CANDLE_DATA_DIR` - path to data directory
+ * `CANDLE_DATA_DIR` - path to data, model, and results directory
  * `CONTAINER` - path and name of image file
  * `CUDA_VISIBLE_DEVICES` - which GPUs should be used
 
@@ -85,6 +92,7 @@ Singularity options:
  * `--nv` - enable Nvidia support
  * `--bind` - make the directory available inside container
 
+Set environment variables:
 ```sh
 export CANDLE_DATA_DIR=candle_data_dir
 export CONTAINER=tCNNS.sif
