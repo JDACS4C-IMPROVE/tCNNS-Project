@@ -4,6 +4,13 @@ Twin convolutional neural network for drugs in SMILES format.
 This model has been curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE).  
 The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Project).
 
+## TODO
+
+Different ways to train model - epochs, early stopping
+Downloading data
+Benchmark vs. original
+Preprocessing of AUC vs IC50
+
 ## Model
 
 See [Model](READMEs/Model.md) for more details.
