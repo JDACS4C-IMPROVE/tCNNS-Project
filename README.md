@@ -32,7 +32,7 @@ Activate the environment:
 conda activate tcnns
 ```
 
-Install CANDLE package
+Install CANDLE package:
 ```sh
 pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
 ```
@@ -41,7 +41,7 @@ pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
 
 Model definition file 'tCNNS.def' is located [_here_](https://github.com/JDACS4C-IMPROVE/Singularity/tree/develop/definitions). 
 
-Build Singularity 
+Build Singularity:
 ```sh
 singularity build --fakeroot tCNNS.sif tCNNS.def 
 ```
