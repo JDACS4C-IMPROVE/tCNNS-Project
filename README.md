@@ -3,7 +3,7 @@ Twin convolutional neural network for drugs in SMILES format.
 
 This model has been curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE).
 
-The original code can be found [_here_](https://github.com/Lowpassfilter/tCNNS-Project).
+The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Project).
 
 ## Model
 
@@ -40,7 +40,7 @@ pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
 
 ### With Singularity
 
-Model definition file 'tCNNS.def' is located [_here_](https://github.com/JDACS4C-IMPROVE/Singularity/tree/develop/definitions). 
+Model definition file `tCNNS.def` is located [here](https://github.com/JDACS4C-IMPROVE/Singularity/tree/develop/definitions). 
 
 Build Singularity:
 ```sh
