@@ -10,7 +10,7 @@
 # arg 3 CANDLE_CONFIG
 
 ### Path to your CANDLEized model's main Python script###
-CANDLE_MODEL=/usr/local/tCNNS-Project/tcnns_baseline_tensorflow.py
+CANDLE_MODEL=/usr/local/tCNNS-Project/train.py
 DATA_DOWNLOAD=/usr/local/tCNNS-Project/candle_data_download.py
 
 if [ $# -lt 2 ] ; then
