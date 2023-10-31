@@ -30,7 +30,9 @@ The script `preprocess.py` uses raw data to generate ML data that can be used to
 - __Drug features__. SMILES string of each drug is converted into a 28 by 188 one-hot matrix where a value 1 at row i and column j means that the ith symbol appears at jth position in the SMILES string.
 
 
-The ML data files are available in this FTP location: https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/tcnns_data_processed.tar.gz. These files can be automatically downloaded from the FTP server using the `candle_lib` utility function `get_file()`.
+The ML data files are available in this FTP location: https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/tcnns_data_processed.tar.gz. 
+
+These files can be automatically downloaded from the FTP server using the `candle_lib` utility function `get_file()`.
 
 
 # Using your own data
