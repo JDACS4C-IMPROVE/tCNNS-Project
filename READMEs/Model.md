@@ -15,7 +15,7 @@ The primary data sources that have been used to construct datasets for model tra
 
 
 ## Data and preprocessing
-Cancer cell line (CCL) omics data and treatment response data (IC50) were originally downloaded from the GDSC website. Th canonical SMILES of 223 drugs were obtained from either PubChem or LINCS. Refer to [Data](Data.md) for more info regarding the raw data provided with the original tCNNS model repo and preprocessing scripts allowing to generate ML data for model training and testing.
+Cancer cell line (CCL) omics data and treatment response data (IC50) were originally downloaded from the GDSC website. Th canonical SMILES of 223 drugs were obtained from either PubChem or LINCS. Refer to [Data.md](Data.md) for more info regarding the raw data provided with the original tCNNS model repo and the preprocessing scripts to generate ML data for model training and testing.
 
 
 ## Evaluation
@@ -32,7 +32,7 @@ Several evaluation schemes were used for the analysis of prediction performance.
 ## URLs
 - [Original GitHub](https://github.com/Lowpassfilter/tCNNS-Project)
 - [IMPROVE GitHub](https://github.com/JDACS4C-IMPROVE/tCNNS-Project/tree/develop)
-- [Data](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/)
+- [Original Data](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/)
 
 
 ## Reference
