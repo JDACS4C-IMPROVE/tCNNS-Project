@@ -39,7 +39,7 @@ pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
 
 ### With Singularity
 
-Model definition file 'tCNNS.def' is located [_here_](https://github.com/JDACS4C-IMPROVE/Singularity/tree/develop/definitions) 
+Model definition file 'tCNNS.def' is located [_here_](https://github.com/JDACS4C-IMPROVE/Singularity/tree/develop/definitions). 
 
 Build Singularity 
 ```sh
@@ -72,29 +72,38 @@ bash infer.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR
 
 ### With Singularity
 
-With:
+To use the container, you must make your data directory available inside the container as `/candle_data_dir`.
 
-IMPROVE_DATA_DIR path to data directory
-CONTAINER path/and/name of image file
-GPUID
+Environment variables:
+
+ * `CANDLE_DATA_DIR` - path to data directory
+ * `CONTAINER` - path and name of image file
+ * `CUDA_VISIBLE_DEVICES` - which GPUs should be used
+
 Singularity options:
 
---nv enable Nvidia support
---bind make the directory available inside container
+ * `--nv` - enable Nvidia support
+ * `--bind` - make the directory available inside container
+
+```sh
+export CANDLE_DATA_DIR=candle_data_dir
+export CONTAINER=tCNNS.sif
+export CUDA_VISIBLE_DEVICES=0
+```
 
 Preprocess:
 ```sh
-singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir tCNNS.sif preprocess.sh $GPUID /candle_data_dir 
+singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER preprocess.sh $CUDA_VISIBLE_DEVICES /candle_data_dir 
 ```
 
 Train:
 ```sh
-singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir tCNNS.sif train.sh $GPUID /candle_data_dir 
+singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.sh $CUDA_VISIBLE_DEVICES /candle_data_dir 
 ```
 
 Infer:
 ```sh
-singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir tCNNS.sif train.sh $GPUID /candle_data_dir 
+singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER infer.sh $CUDA_VISIBLE_DEVICES /candle_data_dir 
 ```
 
 ## Changing hyperparameters
@@ -104,12 +113,14 @@ Hyperparameters of the model can be adjusted in the config file `tcnns_default_m
 A different config file with the same variables can be called by adding a new environment variable: 
 
 ```sh
-export CANDLE_CONFIG=tcnns_new_model.txt
+export CANDLE_CONFIG=tcnns_benchmark_model.txt
 bash train.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR $CANDLE_CONFIG
 ```
 
+Alternatively, one can modify the hyperparameters on the command line like so:
+
 ```sh
-singularity exec --nv --bind $IMPROVE_DATA_DIR:/candle_data_dir ${CONTAINER} train.sh $GPUID /candle_data_dir --epochs 1
+singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.sh $CUDA_VISIBLE_DEVICES /candle_data_dir --epochs 1
 ```
 
 ## Reference
