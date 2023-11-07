@@ -7,10 +7,11 @@ The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Pro
 
 ## TODO
 
-Different ways to train model - epochs, early stopping
-Downloading data
-Benchmark vs. original
-Preprocessing of AUC vs IC50
+Different ways to train model - epochs, early stopping  
+Downloading data  
+Benchmark vs. original  
+Preprocessing of AUC vs IC50  
+Help or config definition section
 
 ## Model
 
