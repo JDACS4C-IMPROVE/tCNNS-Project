@@ -54,16 +54,18 @@ pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
 
 ### With Singularity
 
-Model definition file `tCNNS.def` is located [here](https://github.com/JDACS4C-IMPROVE/Singularity/blob/develop/definitions/tCNNS.def). You can download the file directly or clone the repo. 
+Model definition file `tCNNS.def` is located [here](https://github.com/JDACS4C-IMPROVE/Singularity/blob/develop/definitions/tCNNS.def). 
 
 Clone IMPROVE/Singularity repo:
 ```sh
 git clone https://github.com/JDACS4C-IMPROVE/Singularity.git
+cd Singularity
 ```
 
 Build Singularity:
 ```sh
-singularity build --fakeroot tCNNS.sif tCNNS.def 
+mkdir images
+singularity build --fakeroot images/tCNNS.sif definitions/tCNNS.def 
 ```
 
 ## Example Usage 
