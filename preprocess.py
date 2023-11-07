@@ -140,9 +140,9 @@ def smiles_to_onehot(smiles, c_chars, c_length):
         c_ndarray[i, ...] = onehot_encode(c_chars, smiles[i], c_length)
     return c_ndarray
 
-def load_as_ndarray(folder, raw_data_subdir, raw_drug_features_file):
+def load_as_ndarray(folder, cache_subdir, raw_data_subdir, raw_drug_features_file):
     #reader = csv.reader(open(str(datadir) + "/" + "drug_smiles.csv"))
-    reader = csv.reader(open(os.path.join(folder, raw_data_subdir, raw_drug_features_file)))
+    reader = csv.reader(open(os.path.join(folder, cache_subdir, raw_data_subdir, raw_drug_features_file)))
     #next(reader, None)
     column_names = next(reader, None)
     print(column_names)
@@ -155,8 +155,8 @@ def charsets(smiles):
     i_chars = list(reduce(union, map(string2smiles_list, list(smiles[:, 3]))))
     return c_chars, i_chars
 
-def save_drug_smiles_onehot(filepath, raw_data_subdir, raw_drug_features_file, data_subdir, drug_file):
-    smiles = load_as_ndarray(filepath, raw_data_subdir, raw_drug_features_file)
+def save_drug_smiles_onehot(filepath, cache_subdir, raw_data_subdir, raw_drug_features_file, data_subdir, drug_file):
+    smiles = load_as_ndarray(filepath, cache_subdir, raw_data_subdir, raw_drug_features_file)
     # we will abandon isomerics smiles from now on
     c_chars, _ = charsets(smiles)
     c_length = max(map(len, map(string2smiles_list, list(smiles[:, 2]))))
@@ -180,17 +180,17 @@ def save_drug_smiles_onehot(filepath, raw_data_subdir, raw_drug_features_file, d
     print(canonical.shape)
 
     #np.save(str(outdir) + "/" + "drug_onehot_smiles.npy", save_dict)
-    np.save(os.path.join(filepath, data_subdir, drug_file), save_dict)
+    np.save(os.path.join(filepath, cache_subdir, data_subdir, drug_file), save_dict)
     print("finish saving drug onehot smiles data:")
     return drug_names, drug_cids, canonical
 
 """
 The following part will prepare the mutation features for the cell.
 """
-def save_cell_mut_matrix(filepath, raw_data_subdir, raw_genetic_features_file, data_subdir, cell_file):
+def save_cell_mut_matrix(filepath, cache_subdir, raw_data_subdir, raw_genetic_features_file, data_subdir, cell_file):
     #f = open(folder + "PANCANCER_Genetic_feature_Tue Oct 31 03_00_35 2017.csv")
     #f = open(str(datadir) + "/" + "PANCANCER_Genetic_feature.csv")
-    f = open(os.path.join(filepath, raw_data_subdir, raw_genetic_features_file))
+    f = open(os.path.join(filepath, cache_subdir, raw_data_subdir, raw_genetic_features_file))
     reader = csv.reader(f)
     #reader.next()
     #next(reader, None)
@@ -272,7 +272,7 @@ def save_cell_mut_matrix(filepath, raw_data_subdir, raw_genetic_features_file, d
     print(mut_names.shape)
     print(matrix.shape)
     #np.save(str(outdir) + "/" + "cell_mut_matrix.npy", save_dict)
-    np.save(os.path.join(filepath, data_subdir, cell_file), save_dict)
+    np.save(os.path.join(filepath, cache_subdir, data_subdir, cell_file), save_dict)
     print("finish saving cell mut data:")
 
     return matrix, cell_names, mut_names, cell_id
@@ -280,11 +280,11 @@ def save_cell_mut_matrix(filepath, raw_data_subdir, raw_genetic_features_file, d
 """
 This part is used to extract the drug - cell interaction strength. it contains IC50, AUC, Max conc, RMSE, Z_score
 """
-def save_drug_cell_matrix(filepath, raw_data_subdir, raw_drug_features_file, raw_genetic_features_file, raw_drug_response_file, 
+def save_drug_cell_matrix(filepath, cache_subdir, raw_data_subdir, raw_drug_features_file, raw_genetic_features_file, raw_drug_response_file, 
                           data_subdir, drug_file, cell_file, response_file):
     #f = open(folder + "PANCANCER_IC_Tue Oct 31 02_59_53 2017.csv")
     #f = open(str(datadir) + "/" + "PANCANCER_IC.csv")
-    f = open(os.path.join(filepath, raw_data_subdir, raw_drug_response_file))
+    f = open(os.path.join(filepath, cache_subdir, raw_data_subdir, raw_drug_response_file))
     reader = csv.reader(f)
     #reader.next()
     column_names = next(reader, None)
@@ -329,8 +329,8 @@ def save_drug_cell_matrix(filepath, raw_data_subdir, raw_drug_features_file, raw
     inv_drug_dict = {v:k for k,v in drug_dict.items()}
     inv_cell_dict = {v:k for k,v in cell_dict.items()}
     
-    drug_names, drug_cids, canonical = save_drug_smiles_onehot(filepath, raw_data_subdir, raw_drug_features_file, data_subdir, drug_file)
-    cell_mut_matrix, cell_names, mut_names, cell_ids = save_cell_mut_matrix(filepath, raw_data_subdir, raw_genetic_features_file, data_subdir, cell_file)
+    drug_names, drug_cids, canonical = save_drug_smiles_onehot(filepath, cache_subdir, raw_data_subdir, raw_drug_features_file, data_subdir, drug_file)
+    cell_mut_matrix, cell_names, mut_names, cell_ids = save_cell_mut_matrix(filepath, cache_subdir, raw_data_subdir, raw_genetic_features_file, data_subdir, cell_file)
     
     d_ids = [drug_dict[i] for i in drug_names]
     c_ids = [cell_dict[i] for i in cell_ids]
@@ -360,7 +360,7 @@ def save_drug_cell_matrix(filepath, raw_data_subdir, raw_drug_features_file, raw
     print(existance.shape)
    
     #np.save(str(outdir) + "/" + "drug_cell_interaction.npy", save_dict)
-    np.save(os.path.join(filepath, data_subdir, response_file), save_dict)
+    np.save(os.path.join(filepath, cache_subdir, data_subdir, response_file), save_dict)
     print("finish saving drug cell interaction data:")
     return sub_matrix
 
@@ -388,7 +388,7 @@ def run(gParameters):
     #outdir = folder/f"./data_processed"
     #print(outdir)
     #os.makedirs(outdir, exist_ok=True)
-    save_drug_cell_matrix(file_path, args.raw_data_subdir, args.raw_drug_features_file, args.raw_genetic_features_file, 
+    save_drug_cell_matrix(file_path, args.cache_subdir, args.raw_data_subdir, args.raw_drug_features_file, args.raw_genetic_features_file, 
                           args.raw_drug_response_file, args.data_subdir, args.drug_file, args.cell_file, args.response_file)
 
 def main():
