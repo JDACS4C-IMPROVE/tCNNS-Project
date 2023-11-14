@@ -13,6 +13,10 @@ raw_genetic_features_file = 'PANCANCER_Genetic_feature.csv'
 raw_drug_features_file = 'drug_smiles.csv'
 raw_drug_response_file = 'PANCANCER_IC.csv'
 use_original_data = True
+
+[Preprocess]
+
+[Train]
 ckpt_directory = 'model'
 model_name = 'tCNNS'
 dense = [1024, 1024, 1024]
@@ -40,6 +44,7 @@ drug_id = 'drug_names'
 cell_id = 'cell_ids'
 norm = True
 
+[Test]
 
 
 
