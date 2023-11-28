@@ -12,7 +12,7 @@
 ### Path to your CANDLEized model's main Python script###
 #CANDLE_MODEL=/usr/local/tCNNS-Project/infer.py
 IMPROVE_MODEL_DIR=${IMPROVE_MODEL_DIR:-$( dirname -- "$0" )}
-CANDLE_MODEL=infer.py
+CANDLE_MODEL=tcnns_infer_improve.py
 CANDLE_MODEL=${IMPROVE_MODEL_DIR}/${CANDLE_MODEL}
 
 if [ $# -lt 2 ] ; then
