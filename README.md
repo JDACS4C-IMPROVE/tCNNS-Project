@@ -7,14 +7,6 @@ This model has been curated as a part of the [_IMPROVE Project_](https://github.
 The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Project).  
 See [Reference](#reference) for the original paper.
 
-## TODO
-
-Different ways to train model - epochs, early stopping  
-Downloading data  
-Benchmark vs. original  
-Preprocessing of AUC vs IC50  
-Help or config definition section
-
 ## Model
 
 See [Model](READMEs/Model.md) for more details.
@@ -52,6 +44,13 @@ cd tCNNS-Project
 Install CANDLE package:
 ```sh
 pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
+```
+
+Clone the `IMPROVE` repo to a directory of your preference:
+```sh
+cd ..
+git clone https://github.com/JDACS4C-IMPROVE/IMPROVE
+git checkout develop
 ```
 
 ### With Singularity
@@ -153,6 +152,37 @@ Alternatively, one can modify the hyperparameters on the command line like so:
 ```sh
 singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.sh $CUDA_VISIBLE_DEVICES /candle_data_dir --epochs 1
 ```
+
+## Reproducing original results
+
+The `tcnns_default_model.txt` contains the hyperparameters that were used in the [original paper](#reference).   
+This config file is the default file for the following scripts.   
+Both the raw and processed data are available [here](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/).  
+See [Data](READMEs/Data.md) for more details on the original data.  
+
+```sh
+# set environment variable to point to data folder
+export CANDLE_DATA_DIR=candle_data_dir
+
+# preprocess raw data
+python tcnns_preprocess_improve.py
+
+# train model
+python tcnns_train_improve.py
+
+# infer with trained model on test data
+python tcnns_infer_improve.py
+```
+
+## Cross-Study Analysis (CSA) Workflow
+
+### 1. Download data and define required environment variable
+
+### 2. Proprocess raw data
+
+### 3. Train tCNNS model
+
+### 4. Infer with trained tCNNS model
 
 ## Reference
 Liu, P., Li, H., Li, S., & Leung, K. S. (2019). Improving prediction of phenotypic drug response on cancer cell lines using deep convolutional network. BMC bioinformatics, 20(1), 408. https://doi.org/10.1186/s12859-019-2910-6
