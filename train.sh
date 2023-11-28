@@ -13,7 +13,7 @@
 #CANDLE_MODEL=/usr/local/tCNNS-Project/train.py
 #DATA_DOWNLOAD=/usr/local/tCNNS-Project/candle_data_download.py
 IMPROVE_MODEL_DIR=${IMPROVE_MODEL_DIR:-$( dirname -- "$0" )}
-CANDLE_MODEL=train.py
+CANDLE_MODEL=tcnns_train_improve.py
 CANDLE_MODEL=${IMPROVE_MODEL_DIR}/${CANDLE_MODEL}
 
 if [ $# -lt 2 ] ; then
