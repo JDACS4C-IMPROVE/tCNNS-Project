@@ -156,6 +156,7 @@ singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.
 ## Reproducing original results
 
 The `tcnns_default_model.txt` contains the hyperparameters that were used in the [original paper](#reference). This config file is the default file for the following scripts.   
+
 Both the raw and processed data are available [here](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/). See [Data](READMEs/Data.md) for more details on the original data.  
 
 ```sh
