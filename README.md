@@ -159,7 +159,7 @@ export CANDLE_CONFIG=tcnns_benchmark_model.txt
 bash train.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR $CANDLE_CONFIG
 ```
 
-To get more info on the hyperparameters, refer to (tcnns.py)[tcnns.py] or run the following command:
+To get more info on the hyperparameters, refer to [tcnns.py](tcnns.py) or run the following command:
 ```
 tcnns_train_improve.py --help
 ```
