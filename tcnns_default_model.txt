@@ -1,20 +1,20 @@
 [Global_Params]
+use_original_data = True
+model_name = 'tCNNS'
+
+[Preprocess]
+raw_data_subdir = 'data'
+raw_genetic_features_file = 'PANCANCER_Genetic_feature.csv'
+raw_drug_features_file = 'drug_smiles.csv'
+raw_drug_response_file = 'PANCANCER_IC.csv'
 data_url = 'https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/'
 processed_data = 'tcnns_data_processed.tar.gz'
 original_data = 'tcnns_data.tar.gz'
 cell_file = 'cell_mut_matrix.npy'
 response_file = 'drug_cell_interaction.npy'
 drug_file = 'drug_onehot_smiles.npy'
-test_indices_file = 'test_positions.npy'
 data_subdir = 'data_processed'
 cache_subdir = 'tCNNS/Data'
-raw_data_subdir = 'data'
-raw_genetic_features_file = 'PANCANCER_Genetic_feature.csv'
-raw_drug_features_file = 'drug_smiles.csv'
-raw_drug_response_file = 'PANCANCER_IC.csv'
-use_original_data = True
-
-[Preprocess]
 
 [Train]
 ckpt_directory = 'model'
@@ -39,14 +39,13 @@ label_name = ['IC50']
 train_size = 0.8
 val_size = 0.9
 out_activation = None
-model_weights_file = 'result.ckpt.meta'
 drug_id = 'drug_names'
 cell_id = 'cell_ids'
 norm = True
 
 [Test]
-
-
+model_weights_file = 'result.ckpt.meta'
+test_indices_file = 'test_positions.npy'
 
 
 
