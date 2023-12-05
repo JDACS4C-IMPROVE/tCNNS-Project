@@ -144,6 +144,11 @@ additional_definitions = [
         "type": str,
         "help": "cell line identifier",
     },
+    {
+        "name": "gdsc_gene_file",
+        "type": str,
+        "help": "file of genes corresponding to GDSC genetic features",
+    },
 ]
 
 # required definitions
