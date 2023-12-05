@@ -1,0 +1,53 @@
+[Global_Params]
+use_original_data = False
+model_name = 'tCNNS'
+
+[Preprocess]
+train_split_file = "gCSI_split_0_train.txt"
+val_split_file = "gCSI_split_0_val.txt"
+test_split_file = "gCSI_split_0_test.txt"
+ml_data_outdir = "./ml_data/gCSI-gCSI/split_0"
+data_format = ".py"
+y_data_files = [["response.tsv"]]
+x_data_canc_files = [["cancer_discretized_copy_number.tsv",["Gene_Symbol"]],["cancer_mutation_count.tsv",["Gene_Symbol"]]]
+x_data_drug_files = [["drug_SMILES.tsv"]]
+gdsc_gene_file = 'gdsc_genes.csv'
+y_col_name = 'auc1'
+
+[Train]
+ckpt_directory = 'model'
+model_name = 'tCNNS'
+dense = [1024, 1024, 1024]
+learning_rate = 0.0001
+batch_size = 100
+es_epochs = 10
+epochs = 5
+dropout = 0.5
+min_loss = 100
+bias_constant = 0.1
+std_dev = 0.1
+conv_stride = 1
+drug_conv_width = [7, 7, 7]
+drug_conv_out = [40, 80, 60]
+drug_pool = [3, 3, 3]
+cell_conv_width = [7, 7, 7]
+cell_conv_out = [40, 80, 60]
+cell_pool = [3, 3, 3]
+#label_name = ['IC50']
+#label_name = ['auc1']
+train_size = 0.8
+val_size = 0.9
+out_activation = None
+drug_id = 'drug_names'
+cell_id = 'cell_ids'
+norm = True
+test_indices_file = None
+train_ml_data_dir = './ml_data/gCSI-gCSI/split_0'
+val_ml_data_dir = './ml_data/gCSI-gCSI/split_0'
+model_outdir = './out_models/gCSI/split_0'
+
+[Test]
+test_ml_data_dir = './ml_data/gCSI-gCSI/split_0'
+model_dir = './out_models/gCSI/split_0'
+infer_outdir = './out_infer/gCSI-gCSI/split_0'
+model_weights_file = 'result.ckpt.meta'
