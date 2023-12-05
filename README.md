@@ -194,6 +194,8 @@ python tcnns_infer_improve.py
 
 Different source files and target files can be used to produce a CSA of tCNNS models. Specify the datasets to be trained and tested on in the model config file (i.e. `tcnns_csa_params.txt`):
 
+TO DO: Link to page that describes CSA?
+
 ```
 [Global_Params]
 model_name = "CSA_tCNNS"
