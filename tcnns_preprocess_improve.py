@@ -4,7 +4,7 @@ import csv
 from functools import reduce
 import numpy as np
 import numbers
-import h5py
+#import h5py
 import math
 from pathlib import Path
 import candle
@@ -12,15 +12,33 @@ import tcnns
 import time
 import pandas as pd
 import sys
+from typing import Dict
 
-# IMPROVE imports
+# [Req] IMPROVE/CANDLE imports
 from improve import framework as frm
 from improve import drug_resp_pred as drp
 
 #file_path = os.path.dirname(os.path.realpath(__file__))
-filepath = Path(__file__).resolve().parent
+filepath = Path(__file__).resolve().parent # [Req]
 
-# App-specific params (App: monotherapy drug response prediction)
+# ---------------------
+# [Req] Parameter lists
+# ---------------------
+# Two parameter lists are required:
+# 1. app_preproc_params
+# 2. model_preproc_params
+#
+# The values for the parameters in both lists should be specified in a
+# parameter file that is passed as default_model arg in
+# frm.initialize_parameters().
+
+# 1. App-specific params (App: monotherapy drug response prediction)
+# Note! This list should not be modified (i.e., no params should added or
+# removed from the list.
+#
+# There are two types of params in the list: default and required
+# default:   default values should be used
+# required:  these params must be specified for the model in the param file
 app_preproc_params = [
     # These arg should be specified in the [modelname]_default_model.txt:
     # y_data_files, x_data_canc_files, x_data_drug_files
@@ -41,13 +59,13 @@ app_preproc_params = [
              1) [['drug_SMILES.tsv']] \n\
              2) [['drug_SMILES.tsv'], ['drug_ecfp4_nbits512.tsv']]",
     },
-    {"name": "canc_col_name",
-     "default": "improve_sample_id", # default
+    {"name": "canc_col_name", # default
+     "default": "improve_sample_id",
      "type": str,
      "help": "Column name in the y (response) data file that contains the cancer sample ids.",
     },
-    {"name": "drug_col_name", 
-     "default": "improve_chem_id", # default
+    {"name": "drug_col_name", # default
+     "default": "improve_chem_id",
      "type": str,
      "help": "Column name in the y (response) data file that contains the drug ids.",
     },
@@ -70,9 +88,14 @@ app_preproc_params = [
 
 ]
 
-#preprocess_params = app_preproc_params + model_preproc_params
-preprocess_params = app_preproc_params
-req_preprocess_args = [ll["name"] for ll in preprocess_params]
+# 2. Model-specific params (Model: LightGBM)
+# All params in model_preproc_params are optional.
+# If no params are required by the model, then it should be an empty list.
+model_preproc_params = []
+
+# [Req] Combine the two lists (the combined parameter list will be passed to
+# frm.initialize_parameters() in the main().
+preprocess_params = app_preproc_params + model_preproc_params
 
 # ---------------------------------------------
 # Functions related to preprocessing drug data 
@@ -179,14 +202,14 @@ def save_drug_smiles_onehot_csa(filepath, data_subdir, drug_df, c_chars, c_lengt
     save_dict["canonical"] = canonical # SMILES
     save_dict["c_chars"] = c_chars # list of unique characters
 
-    print("Drug one hot encoded SMILES {} data:".format(label))
-    print("Number of drugs: {}.".format(drug_cids.shape[0]))
-    print(canonical.shape)
+    #print("Drug one hot encoded SMILES {} data:".format(label))
+    #print("Number of drugs: {}".format(drug_cids.shape[0]))
+    #print(canonical.shape)
 
     # save as npy file
     drug_file_name = f"{label}_drug_onehot_smiles.npy"
     np.save(os.path.join(filepath, data_subdir, drug_file_name), save_dict)
-    print("Saving drug one hot encoded SMILES {} data..".format(label))
+    print("Saving preprocessed drug {} data...".format(label))
     return drug_cids
 
 # ----------------------------------------------
@@ -279,15 +302,15 @@ def save_cell_mut_matrix(data_dir, raw_data_subdir, raw_genetic_features_file, d
 
     return matrix, cell_names, mut_names, cell_id
 
-def save_cell_mut_matrix_csa(filepath, data_subdir, gf_df, label="train", canc_col_name="sample_id"):
+def save_cell_mut_matrix_csa(filepath, data_subdir, gf_df, label="train", sample_name="sample_id"):
     '''function for csa data'''
     # transform from long to wide format
-    gf_df_wide= gf_df.pivot_table(index=canc_col_name, columns="genetic_feature", values="is_mutated").reset_index()
+    gf_df_wide= gf_df.pivot_table(index=sample_name, columns="genetic_feature", values="is_mutated").reset_index()
     # convert dataframe to array
     matrix = gf_df_wide.iloc[: , 1:].to_numpy()
 
     mut_names = gf_df.genetic_feature.unique().tolist() # name of GDSC genetic features
-    cell_id = gf_df[canc_col_name].unique().tolist() # improve_sample_id
+    cell_id = gf_df[sample_name].unique().tolist() # improve_sample_id
 
     # save as dictionary
     save_dict = {}
@@ -296,14 +319,14 @@ def save_cell_mut_matrix_csa(filepath, data_subdir, gf_df, label="train", canc_c
     save_dict["cell_id"] = cell_id
 
     print("Cell mutation {} data:".format(label))  
-    print("Number of cell lines: {}".format(len(save_dict["cell_id"])))
-    print("Number of genetic features: {}".format(len(save_dict["mut_names"])))
-    print(matrix.shape)
+    #print("Number of cell lines: {}".format(len(save_dict["cell_id"])))
+    #print("Number of genetic features: {}".format(len(save_dict["mut_names"])))
+    #print(matrix.shape)
 
     # save as npy file
     cell_file_name = f"{label}_cell_mut_matrix.npy"
     np.save(os.path.join(filepath, data_subdir, cell_file_name), save_dict)
-    print("Finish saving cell mutation {} data...".format(label))
+    print("Saving preprocessed omics {} data...".format(label))
     return cell_id
 
 # --------------------------------------------------
@@ -325,9 +348,9 @@ def loss_gain(x):
     else:
         return "neutral"
     
-def get_mutations(mut_df, gene_df, canc_col_name):
+def get_mutations(mut_df, gene_df, sample_name="sample_id"):
     # reshape from wide to long format
-    mut_df = pd.melt(mut_df, id_vars=canc_col_name, value_vars=mut_df.columns[1:].to_list())
+    mut_df = pd.melt(mut_df, id_vars=sample_name, value_vars=mut_df.columns[1:].to_list())
     # if any mutation in gene, indicate with 1
     mut_df["is_mutated"] = np.where(mut_df["value"] > 0, 1, 0)
     # drop and rename columns
@@ -337,9 +360,9 @@ def get_mutations(mut_df, gene_df, canc_col_name):
     # filter to GDSC mutation genes
     return mut_df[mut_df.genetic_feature.isin(mut_list)]
 
-def get_copy_number_alterations(cna_df, gene_df, canc_col_name):
+def get_copy_number_alterations(cna_df, gene_df, sample_name="sample_id"):
     # reshape from wide to long format
-    cna_df = pd.melt(cna_df, id_vars=canc_col_name, value_vars=cna_df.columns[1:].to_list())
+    cna_df = pd.melt(cna_df, id_vars=sample_name, value_vars=cna_df.columns[1:].to_list())
     # filter to GDSC CNA genetic features
     gene_df = gene_df[gene_df["Genetic Feature"].str.contains("cna")]
     # filter to GDSC genes corresponding to CNAs
@@ -357,7 +380,7 @@ def get_copy_number_alterations(cna_df, gene_df, canc_col_name):
     # filter to CNAs without mutations
     no_mut_df = cna_df[cna_df.is_mutated == 0].rename(columns={"is_mutated":"temp_mutated"})
     # merge dataframes
-    new_cna_df = has_mut_df.merge(no_mut_df, on=[canc_col_name,"Genetic Feature"], how="outer")
+    new_cna_df = has_mut_df.merge(no_mut_df, on=[sample_name,"Genetic Feature"], how="outer")
     # prioritize CNAs with at least one gene mutated to finalize "is_mutated"
     new_cna_df = new_cna_df.assign(final_is_mutated = new_cna_df.apply(remove_dup_cna, axis=1))
     # drop and rename columns
@@ -491,7 +514,7 @@ def save_drug_cell_matrix_csa(filepath, data_subdir, rs_df, d_id, c_id, label="t
     # save as npy file
     response_file_name = f"{label}_drug_cell_interaction.npy"
     np.save(os.path.join(filepath, data_subdir, response_file_name), save_dict)
-    print("Finish saving drug cell interaction {} data...".format(label))
+    print("Saving preprocessed response {} data...".format(label))
 
 """
 def initialize_parameters(default_model="tcnns_default_model.txt"):
@@ -511,10 +534,14 @@ def initialize_parameters(default_model="tcnns_default_model.txt"):
     return gParameters
 """
 
-def run(params): 
-    """ Execute data pre-processing for GraphDRP model.
+def run(params: Dict): 
+    """ Run data preprocessing.
 
-    :params: Dict params: A dictionary of CANDLE/IMPROVE keywords and parsed values.
+    Args:
+        params (dict): dict of CANDLE/IMPROVE parameters and parsed values.
+
+    Returns:
+        str: directory name that was used to save the preprocessed (generated) ML data files.
     """
     
     start = time.time()
@@ -530,51 +557,65 @@ def run(params):
         save_drug_cell_matrix(args.data_dir, args.raw_data_subdir, args.raw_drug_features_file, args.raw_genetic_features_file, 
                           args.raw_drug_response_file, args.data_subdir, args.drug_file, args.cell_file, args.response_file)
     else:
-        # -----------------------------------------
-        # [Req] Build paths and create ML data dir
-        # -----------------------------------------
-        # build paths for raw_data, x_data, y_data, splits
+        # ------------------------------------------------------
+        # [Req] Build paths and create output data dir
+        # ------------------------------------------------------
+        # Build paths for raw_data, x_data, y_data, splits
         params = frm.build_paths(params)  
-        # create outdir for ML data (to save preprocessed data)
+        # Create output dir for model input data (to save preprocessed ML data)
         frm.create_outdir(outdir=params["ml_data_outdir"])
-        # ----------------
-        # Load omics data
-        # ----------------
+        
+        # ------------------------------------------------------
+        # [Req] Load X data (feature representations)
+        # ------------------------------------------------------
+        # Use the provided data loaders to load data that is required by the model.
+        #
+        # Benchmark data includes three dirs: x_data, y_data, splits.
+        # The x_data contains files that represent feature information such as
+        # cancer representation (e.g., omics) and drug representation (e.g., SMILES).
+        #
+        # Prediction models utilize various types of feature representations.
+        # Drug response prediction (DRP) models generally use omics and drug features.
+        #
+        # If the model uses omics data types that are provided as part of the benchmark
+        # data, then the model must use the provided data loaders to load the data files
+        # from the x_data dir.
         print("\nLoading omics data...")
-        oo = drp.OmicsLoader(params)
+        omics_obj = drp.OmicsLoader(params)
         genes_df = pd.read_csv(os.path.join(filepath, args.gdsc_gene_file)) # load GDSC genetic features
-        dis_copy = oo.dfs['cancer_discretized_copy_number.tsv'] # discretized copy number data
-        mut_count = oo.dfs['cancer_mutation_count.tsv'] # mutation count data
-        # ---------------------
-        # [Req] Load drug data
-        # ---------------------
+        dis_copy = omics_obj.dfs['cancer_discretized_copy_number.tsv'] # discretized copy number data
+        mut_count = omics_obj.dfs['cancer_mutation_count.tsv'] # mutation count data
+
         print("\nLoading drugs data...")
-        dd = drp.DrugsLoader(params)
-        smi = dd.dfs['drug_SMILES.tsv']
-        # ------------------------------------------------------------------------------
-        # Construct ML data for every stage (train, val, test)
+        drugs_obj = drp.DrugsLoader(params)
+        smi = drugs_obj.dfs['drug_SMILES.tsv'] # drug smiles data
+        smi = smi.reset_index() # reset index
+        # ------------------------------------------------------
+        # [Req] Construct ML data for every stage (train, val, test)
+        # ------------------------------------------------------
         # All models must load response data (y data) using DrugResponseLoader().
         # Below, we iterate over the 3 split files (train, val, test) and load response
         # data, filtered by the split ids from the split files.
-        # ------------------------------------------------------------------------------
+
+        # Dict with split files corresponding to the three sets (train, val, and test)
         stages = {"train": params["train_split_file"],
                   "val": params["val_split_file"],
                   "test": params["test_split_file"]}
         
         for stage, split_file in stages.items():
-            # -------------------
-            # Load response data
-            # -------------------
-            rr = drp.DrugResponseLoader(params, split_file=split_file, verbose=True)
-            df_response = rr.dfs["response.tsv"]
-            # ----------
-            # Data prep 
-            # Save ML data files in params["ml_data_outdir"]
-            # The implementation of this step, depends on the model.
-            # ----------
-
-            # Retain (canc, drug) response samples for which omics data is available
-            ydf, _ = drp.get_common_samples(df1=df_response, df2=mut_count,
+            # --------------------------------
+            # [Req] Load response data
+            # --------------------------------
+            print("\nLoading response data for {}...".format(stage))
+            rsp = drp.DrugResponseLoader(params,
+                                    split_file=split_file,
+                                    verbose=False).dfs["response.tsv"]
+            # --------------------------------
+            # Data prep
+            # --------------------------------
+            # Retain (canc, drug) responses for which both omics and drug features
+            # are available.
+            ydf, _ = drp.get_common_samples(df1=rsp, df2=mut_count,
                                               ref_col=params["canc_col_name"])
             print(ydf[[params["canc_col_name"], params["drug_col_name"]]].nunique())
             # Sub-select desired response column (y_col_name)
@@ -599,28 +640,43 @@ def run(params):
             # combine and sort by sample ID and genetic feature
             gf = pd.concat([mut, cna]).sort_values([params["canc_col_name"], 'genetic_feature'])
             # create sample and mutation matrix and save files
-            omics_data = save_cell_mut_matrix_csa(filepath, params["ml_data_outdir"], gf, label=stage)
+            omics_data = save_cell_mut_matrix_csa(filepath, params["ml_data_outdir"], gf, label=stage, sample_name=params["canc_col_name"])
             # -------------------
             # Prep response data
             # -------------------
             # preprocess and save drug response file
             save_drug_cell_matrix_csa(filepath, params["ml_data_outdir"], ydf, drug_data, omics_data, label=stage, response_label=params["y_col_name"], drug_col_name = params["drug_col_name"], canc_col_name = params["canc_col_name"])
         
+            # --------------------------------
+            # [Req] Save ML data files in params["ml_data_outdir"]
+            # The implementation of this step, depends on the model.
+            # --------------------------------
+            # [Req] Build data name
+            # data_fname = frm.build_ml_data_name(params, stage)
+            # print(data_fname)
+            
+            # [Req] Save y dataframe for the current stage
+            frm.save_stage_ydf(ydf, params, stage)
+                   
     end = time.time()
     print("Time to preprocess: {}".format(end-start))
        
     return params["ml_data_outdir"]   
-        
+ 
+# [Req]      
 def main(args):
+    # [Req]
+    additional_definitions = preprocess_params
     #params = initialize_parameters()
     params = frm.initialize_parameters(
         filepath,
-        default_model="tcnns_default_model.txt",
+        default_model="tcnns_csa_params.txt",
         additional_definitions=preprocess_params,
-        required=req_preprocess_args,
+        required=None,
     )
     ml_data_outdir = run(params)
-    print("\nFinished tCNNS pre-processing (transformed raw DRP data to model input ML data).")
+    print("\nFinished data preprocessing.")
 
+# [Req]
 if __name__ == "__main__":
     main(sys.argv[1:])

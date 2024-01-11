@@ -11,11 +11,50 @@ from scipy import stats
 import pandas as pd
 import math
 import improve_utils
-from improve_utils import improve_globals as ig
+#from improve_utils import improve_globals as ig
 import time
 import subprocess
+from typing import Dict
+import sys
 
-file_path = os.path.dirname(os.path.realpath(__file__))
+# [Req] IMPROVE/CANDLE imports
+from improve import framework as frm
+
+# [Req] Imports from preprocess script
+from tcnns_preprocess_improve import preprocess_params
+
+# Imports from infer script
+#from tcnns_infer_improve import *
+
+#file_path = os.path.dirname(os.path.realpath(__file__))
+filepath = Path(__file__).resolve().parent # [Req]
+
+# ---------------------
+# [Req] Parameter lists
+# ---------------------
+# Two parameter lists are required:
+# 1. app_train_params
+# 2. model_train_params
+#
+# The values for the parameters in both lists should be specified in a
+# parameter file that is passed as default_model arg in
+# frm.initialize_parameters().
+
+# 1. App-specific params (App: monotherapy drug response prediction)
+# Currently, there are no app-specific params for this script.
+app_train_params = []
+
+# 2. Model-specific params (Model: LightGBM)
+# All params in model_train_params are optional.
+# If no params are required by the model, then it should be an empty list.
+model_train_params = []
+
+# Combine the two lists (the combined parameter list will be passed to
+# frm.initialize_parameters() in the main().
+train_params = app_train_params + model_train_params
+
+# [Req] List of metrics names to compute prediction performance scores
+metrics_list = ["mse", "rmse", "pcc", "scc", "r2"]
 
 def weight_variable(shape, std_dev, rseed):
     initial = tf.truncated_normal(shape, stddev=std_dev, seed=rseed)
@@ -81,6 +120,48 @@ def load_data(batch_size, label_list, positions, response_dict, smiles_canonical
     
     return train, valid, test
 
+# moved/modified from batcher.py
+def create_batch(batch_size, label, positions, response_dict, drug_smile, mutations, dataset_type=None, rseed=1):
+    if dataset_type == "train":
+        np.random.seed(rseed)
+        np.random.shuffle(positions)
+
+    # check batch order of train? same drugs in each batch?
+
+    # transform drug response matrix
+    assert label in response_dict, f"key {label} not in dictionary"
+    value_shape = response_dict[label].shape
+    value = np.zeros((value_shape[0], value_shape[1], 1))
+    value[ :, :, 0 ] = response_dict[label]
+
+    # transpose dataframe
+    drug_smile = np.transpose(drug_smile, (0, 2, 1)) 
+
+    # create batch object
+    ds = Batch(batch_size, value, drug_smile, mutations, positions)
+    
+    return ds
+
+def load_graph(meta_file):
+    """Creates new graph and session"""
+    graph = tf.Graph()
+    with graph.as_default():
+        # Create session and load model
+        sess = tf.Session()
+
+        # Load meta file
+        print("Loading meta graph from " + meta_file)
+        saver = tf.train.import_meta_graph(meta_file, clear_devices=True)
+    return graph, sess, saver
+
+def load_ckpt(ckpt, sess, saver):
+    """Helper for loading weights"""
+    # Load weights
+    if ckpt is not None:
+        print(f"Loading weights from {ckpt} folder...")
+        saver.restore(sess, tf.train.latest_checkpoint(ckpt))
+
+"""
 def initialize_parameters(default_model="tcnns_default_model.txt"):
 
     # Build benchmark object
@@ -96,11 +177,32 @@ def initialize_parameters(default_model="tcnns_default_model.txt"):
     gParameters = candle.finalize_parameters(common)
 
     return gParameters
+"""
 
-def run(gParameters): 
+# [Req]
+def run(params: Dict):
+    """ Run model training.
 
-    args = candle.ArgumentStruct(**gParameters)
+    Args:
+        params (dict): dict of CANDLE/IMPROVE parameters and parsed values.
 
+    Returns:
+        dict: prediction performance scores computed on validation data
+            according to the metrics_list.
+    """
+    # ------------------------------------------------------
+    # [Req] Create output dir and build model path
+    # ------------------------------------------------------
+    # Create output dir for trained model, val set predictions, val set
+    # performance scores
+    frm.create_outdir(outdir=params["model_outdir"])
+
+    # Build model path
+    modelpath = frm.build_model_path(params, model_dir=params["model_outdir"])
+
+    args = candle.ArgumentStruct(**params)
+
+    # check for GPU
     if tf.test.gpu_device_name():
         if os.getenv("CUDA_VISIBLE_DEVICES") is not None:
             print("CUDA_VISIBLE_DEVICES:", os.getenv("CUDA_VISIBLE_DEVICES"))
@@ -113,14 +215,34 @@ def run(gParameters):
         candle.file_utils.get_file(args.processed_data, f"{args.data_url}/{args.processed_data}", cache_subdir = args.cache_subdir)
 
     # check files in data processed folder
-    proc = subprocess.Popen([f"ls {args.data_dir}/{args.data_subdir}/*"], stdout=subprocess.PIPE, shell=True)   
-    (out, err) = proc.communicate()
-    print("List of files in processed data folder", out.decode('utf-8'))
+    #proc = subprocess.Popen([f"ls {args.data_dir}/{args.data_subdir}/*"], stdout=subprocess.PIPE, shell=True)   
+    #(out, err) = proc.communicate()
+    #print("List of files in processed data folder", out.decode('utf-8'))
     
-    # load processed data
-    drug_smile_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.drug_file), encoding="latin1", allow_pickle=True).item()
-    drug_cell_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.response_file), encoding="latin1", allow_pickle=True).item()
-    cell_mut_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.cell_file), encoding="latin1", allow_pickle=True).item()
+    # ------------------------------------------------------
+    # [Req] Create data names for train and val sets
+    # ------------------------------------------------------
+    #train_data_fname = frm.build_ml_data_name(params, stage="train")
+    #val_data_fname = frm.build_ml_data_name(params, stage="val")
+    #print(train_data_fname)
+    #print(val_data_fname)
+    
+    # ------------------------------------------------------
+    # Load model input data (ML data)
+    # ------------------------------------------------------
+    if args.use_original_data:
+        drug_smile_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.drug_file), encoding="latin1", allow_pickle=True).item()
+        drug_cell_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.response_file), encoding="latin1", allow_pickle=True).item()
+        cell_mut_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.cell_file), encoding="latin1", allow_pickle=True).item()
+    else:
+        # train data
+        drug_smile_dict = np.load(Path(params["train_ml_data_dir"])/"train_drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
+        drug_cell_dict = np.load(Path(params["train_ml_data_dir"])/"train_drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
+        cell_mut_dict = np.load(Path(params["train_ml_data_dir"])/"train_cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
+        # val data
+        vl_drug_smile_dict = np.load(Path(params["val_ml_data_dir"])/"val_drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
+        vl_drug_cell_dict = np.load(Path(params["val_ml_data_dir"])/"val_drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
+        vl_cell_mut_dict = np.load(Path(params["val_ml_data_dir"])/"val_cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
 
     # define variables
     c_chars = drug_smile_dict["c_chars"]
@@ -138,6 +260,10 @@ def run(gParameters):
     print("Length of SMILES string: {}".format(length_smiles))
     print("Number of mutations: {}".format(num_cell_features))
     print("Number of unique characters in SMILES string: {}".format(num_chars_smiles))
+       
+    # ------------------------------------------------------
+    # Prepare, train, and save model
+    # ------------------------------------------------------
 
     # define model
     drug = tf.placeholder(tf.float32, shape=[None, length_smiles, num_chars_smiles])
@@ -229,10 +355,15 @@ def run(gParameters):
         save_dict["positions"] = test.positions
         np.save(os.path.join(args.data_dir, args.data_subdir, "test_positions.npy"), save_dict)
         print("Saving test data indices for inference.")
-
+    else:
+           # create train, valid, and test batch objects
+        train = create_batch(args.batch_size, params["y_col_name"], drug_cell_dict["positions"], drug_cell_dict, drug_smile_dict["canonical"], cell_mut_dict["cell_mut"], dataset_type="train", rseed=args.rng_seed)
+        valid = create_batch(args.batch_size, params["y_col_name"], vl_drug_cell_dict["positions"], vl_drug_cell_dict, vl_drug_smile_dict["canonical"], vl_cell_mut_dict["cell_mut"])
+        
     # initialize saver object
     saver = tf.train.Saver(var_list=tf.trainable_variables())
     
+    # train model
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
@@ -242,7 +373,7 @@ def run(gParameters):
             print("Variable: ", k)
             print("Shape: ", v.shape)
 
-        test_values, test_drugs, test_cells = test.whole_batch()
+        #test_values, test_drugs, test_cells = test.whole_batch()
         valid_values, valid_drugs, valid_cells = valid.whole_batch()
         epoch = 0
         best_epoch = 0
@@ -267,8 +398,10 @@ def run(gParameters):
                     best_epoch = epoch
                     # save scores associated with lowest validation loss
                     val_scores = {"val_loss": float(valid_loss), "r2": float(valid_r2), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
-                    os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
-                    saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                    #os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
+                    #saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                    os.system("rm {}/*".format(modelpath))
+                    saver.save(sess, os.path.join(modelpath, "result.ckpt"))
                     print("Model saved!")
                     min_loss = valid_loss
                     count = 0
@@ -298,8 +431,10 @@ def run(gParameters):
                             best_epoch = epoch
                             # save scores associated with lowest validation loss
                             val_scores = {"val_loss": float(valid_loss), "r2": float(valid_r2), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
-                            os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
-                            saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                            #os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
+                            #saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                            os.system("rm {}/*".format(modelpath))
+                            saver.save(sess, os.path.join(modelpath, "result.ckpt"))
                             print("Model saved!")
                             min_loss = valid_loss
                         epoch_end_time = time.time()
@@ -321,9 +456,11 @@ def run(gParameters):
                         best_epoch = epoch
                         # save scores associated with lowest validation loss
                         val_scores = {"val_loss": float(valid_loss), "r2": float(valid_r2), "pcc": float(valid_pcc), "scc": float(valid_scc), "rmse": float(valid_rmse)}
-                        os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
-                        saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
-                        print("Saved!")
+                        #os.system("rm {}/*".format(os.path.join(args.output_dir, args.ckpt_directory)))
+                        #saver.save(sess, os.path.join(args.output_dir, args.ckpt_directory, "result.ckpt"))
+                        os.system("rm {}/*".format(modelpath))
+                        saver.save(sess, os.path.join(modelpath, "result.ckpt"))
+                        print("Model saved!")
                         min_loss = valid_loss
                         count = 0
                     else:
@@ -350,14 +487,83 @@ def run(gParameters):
     else:
         print("The val_loss did not improve from the min_loss after training. Results and model not saved.")
 
+    # ------------------------------------------------------
+    # Load best model and compute predictions
+    # ------------------------------------------------------
+    # Load the best saved model (as determined based on val data)
+    # Load metagraph and create session
+    print(modelpath)
+    graph, sess, saver = load_graph(os.path.join(modelpath, args.model_weights_file))
 
-def main():
+    # Load checkpoint
+    with graph.as_default():
+        load_ckpt(modelpath, sess, saver)
+
+        # run model to get predictions
+        print("Obtainings predictions from trained model...")
+
+        output_layer = graph.get_tensor_by_name("output_tensor:0")
+        val_pred = []
+        drug_id_list = []
+        cell_id_list = []
+        val_true = []
+        for i in range(len(valid.positions)):
+            row = valid.positions[i][0]
+            col = valid.positions[i][1]
+            valid_drug = np.array(valid.drug[row])
+            #drug_id_list.append(drug_cell_dict[params["drug_col_name"]][row])
+            valid_cell = np.array(valid.cell[col])
+            #cell_id_list.append(drug_cell_dict[params["canc_col_name"]][col])
+            valid_value = np.array(valid.value[row, col])
+            val_true.append(valid_value[0])
+        
+            prediction = sess.run(output_layer, feed_dict={"Placeholder:0": np.reshape(valid_drug,(1,valid_drug.shape[0],valid_drug.shape[1])),
+                                                "Placeholder_1:0": np.reshape(valid_cell, (1, valid_cell.shape[0])), 
+                                                "Placeholder_2:0": np.reshape(valid_value, (1, valid_value.shape[0])),
+                                                "Placeholder_3:0": 1}) # keep_prob
+
+            val_pred.append(prediction[0][0])
+            
+        # reverse normalization if using IC50
+        if params["y_col_name"].lower() == "ic50":
+            val_true = val_true.apply(lambda x: math.log(((1-x)/x)**-10))
+            val_pred = val_pred.apply(lambda x: math.log(((1-x)/x)**-10))
+
+    # ------------------------------------------------------
+    # [Req] Save raw predictions in dataframe
+    # ------------------------------------------------------
+    frm.store_predictions_df(
+        params,
+        y_true=val_true, y_pred=val_pred, stage="val",
+        outdir=params["model_outdir"]
+    )
+    # ------------------------------------------------------
+    # [Req] Compute performance scores
+    # ------------------------------------------------------
+    val_scores = frm.compute_performace_scores(
+        params,
+        y_true=val_true, y_pred=val_pred, stage="val",
+        outdir=params["model_outdir"], metrics=metrics_list
+    )
+        
+    return val_scores
+
+# [Req]
+def main(args):
     start = time.time()
-    gParameters = initialize_parameters()
-    run(gParameters)
+    # [Req]
+    additional_definitions = preprocess_params + train_params
+    params = frm.initialize_parameters(
+        filepath,
+        default_model="tcnns_csa_params.txt",
+        additional_definitions=additional_definitions,
+        required=None,
+    )
+    val_scores = run(params)
+    print("\nFinished model training.")
     end = time.time()
     print("Total runtime: {}".format(end-start))
-    print("Finished.")
 
+# [Req]
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
