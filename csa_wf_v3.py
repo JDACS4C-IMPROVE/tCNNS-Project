@@ -40,8 +40,8 @@ class Timer:
 
 fdir = Path(__file__).resolve().parent
 
-# y_col_name = "auc"
-y_col_name = "auc1"
+y_col_name = "auc"
+# y_col_name = "auc1"
 
 maindir = Path(f"./{y_col_name}")
 MAIN_ML_DATA_DIR = Path(f"./{maindir}/ml_data")
