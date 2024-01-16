@@ -484,11 +484,13 @@ def save_drug_cell_matrix_csa(filepath, data_subdir, rs_df, d_id, c_id, label="t
     # get list of drug and cell IDs in response dataframe
     rs_drug_cids = rs_df[drug_col_name].tolist()
     rs_cell_ids = rs_df[canc_col_name].tolist()
-
+    rs_temp_cell_ids = rs_df["temp_sample_id"].tolist()
+    
     # save as dictionary
     save_dict = {}
     save_dict["drug_cid"] = rs_drug_cids
     save_dict["cell_ids"] = rs_cell_ids
+    save_dict["temp_cell_ids"] = rs_temp_cell_ids
     save_dict["response_values"] = rs_response_vals
     
     # get indices of drug and cell IDs for SMILES and genetic features matrices
@@ -497,20 +499,34 @@ def save_drug_cell_matrix_csa(filepath, data_subdir, rs_df, d_id, c_id, label="t
     d_pos = [d_dict[i] for i in rs_drug_cids]
     c_dict = {val: idx + 0 for idx, val in enumerate(c_id)}
     c_index = [c_dict[i] for i in c_id]
-    c_pos = [c_dict[i] for i in rs_cell_ids]
+    #c_pos = [c_dict[i] for i in rs_cell_ids]
+    c_pos = [c_dict[i.split("_")[0]] for i in rs_temp_cell_ids]
+    t_dict = {val: idx + 0 for idx, val in enumerate(list(set(rs_temp_cell_ids)))}
+    t_index = [t_dict[i] for i in list(set(rs_temp_cell_ids))]
+    print(len(t_index))
     
     # save positions
     positions = np.array(list(np.array(zip(d_pos, c_pos)).tolist()))
     save_dict["positions"] = positions
+    print(len(positions))
 
     # create matrix of drug response values
-    matrix = np.zeros(shape=(len(d_dict), len(c_dict), 1), dtype=np.float32)
+    #matrix = np.zeros(shape=(len(d_dict), len(rs_temp_cell_ids), 1), dtype=np.float32)
+    matrix = np.zeros(shape=(len(d_dict), len(t_dict), 1), dtype=np.float32)
     for idx, x in enumerate(positions):
         matrix[x[0], x[1], 0] = rs_response_vals[idx]
-    sub_matrix = matrix[d_index, :][:, c_index]
+    print(matrix.shape)
+    print(matrix)
+    #sub_matrix = matrix[d_index, :][:, c_index]
+    sub_matrix = matrix[d_index, :][:, t_index]
+    print(sub_matrix.shape)
+    print(sub_matrix)
     # save matrix
+    #save_dict[response_label] = sub_matrix[:, :, 0]
     save_dict[response_label] = sub_matrix[:, :, 0]
-   
+    print(save_dict[response_label].shape)
+    print(save_dict[response_label])
+    #save_dict[response_label] = rs_response_vals
     # save as npy file
     response_file_name = f"{label}_drug_cell_interaction.npy"
     np.save(os.path.join(filepath, data_subdir, response_file_name), save_dict)
@@ -617,10 +633,29 @@ def run(params: Dict):
             # are available.
             ydf, _ = drp.get_common_samples(df1=rsp, df2=mut_count,
                                               ref_col=params["canc_col_name"])
+            print("Number of samples and drugs with mutation count data:")
+            print(ydf.shape)
             print(ydf[[params["canc_col_name"], params["drug_col_name"]]].nunique())
+            ydf, _ = drp.get_common_samples(df1=ydf, df2=dis_copy,
+                                              ref_col=params["canc_col_name"])
+            print("Number of samples and drugs with discretized copy number data:")
+            print(ydf.shape)
+            print(ydf[[params["canc_col_name"], params["drug_col_name"]]].nunique())
+            ydf, _ = drp.get_common_samples(df1=ydf, df2=smi,
+                                              ref_col=params["drug_col_name"])
+            print("Number of samples and drugs with SMILES data:")
+            print(ydf.shape)
+            print(ydf[[params["canc_col_name"], params["drug_col_name"]]].nunique())
+            # Concatenate study ID to sample ID for drug and sample pairs with multiple experiments
+            ydf["temp_sample_id"] = ydf[params["canc_col_name"]] + "_" + ydf["study"].astype(str)
             # Sub-select desired response column (y_col_name)
-            # And reduce response dataframe to 3 columns: drug_id, cell_id and selected drug_response
-            ydf = ydf[[params["drug_col_name"], params["canc_col_name"], params["y_col_name"]]]
+            # And reduce response dataframe to 4 columns: drug_id, cell_id, temp_cell_id, and selected drug_response
+            ydf = ydf[[params["drug_col_name"], params["canc_col_name"], "temp_sample_id", params["y_col_name"]]]
+            # remove any pairs with missing response values
+            ydf = ydf.dropna(subset=[params["y_col_name"]])
+            print("Number of samples and drugs with nonmissing response data:")
+            print(ydf.shape)
+            print(ydf[[params["canc_col_name"], params["drug_col_name"], "temp_sample_id"]].nunique())
             # -------------------
             # Prep drug features
             # -------------------
