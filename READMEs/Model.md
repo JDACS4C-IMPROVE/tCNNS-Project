@@ -28,6 +28,7 @@ Several evaluation schemes were used for the analysis of prediction performance.
 - Number of cell line features: The performance of the model is tested with different numbers of cell line features.
 - Modification of SMILES format:  The one-hot representation of the SMILES format was modified in three ways for assessing whether the model captures the biological meaning in the data versus the statistical pattern of the data.
 
+## Modifications for IMPROVE Framework
 
 ## URLs
 - [Original GitHub](https://github.com/Lowpassfilter/tCNNS-Project)
