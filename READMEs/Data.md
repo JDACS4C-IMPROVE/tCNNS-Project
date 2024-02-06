@@ -44,5 +44,5 @@ These files can be automatically downloaded from the FTP server using the `candl
 List x_data
 Describe any special preprocessing created to run model
 
-# Using your own data
+## Using your own data
 Ultimately, we want to be able to train models with other datasets (not only the ones provided with the model repo). This requires the preprocessing scripts to be available and reproducible.
