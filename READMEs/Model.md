@@ -1,24 +1,23 @@
-# tCNNS
-Twin convolutional neural network for drugs in SMILES format.
-
+# Model Description
 
 ## Structure
 tCNNS consists of two 1D convolutional neural network (CNN) branches for distilling the features for drugs and cell lines separately. For the cell-line branch, the input data are 1D feature vectors of 735 genetic features related to mutation state or copy number alteration. 
 For the drug branch, the input data are one-hot matrices (28 unique symbols x 188 positions) for each drug where a value of 1 at row i and column j means that the ith symbol appears at jth position in the SMILES format for that drug. The structures for the two branches are the same. For each branch, there are three similar layers: each layer with convolution width 7, convolution stride 1, max pooling width 3, and pooling stride 3. The only difference between the layers is that their number of channels are 40, 80 and 60, respectively. After the two branches of the CNN, there is a fully connected network (FCN), which aims to do the regression analysis between the output of the two branches and the IC50 values. There are three hidden layers in the FCN, each with 1024 neurons. The dropout probability is set to be 0.5 for the FCN during the training phase.
 
+**image from paper** not required
 
-## Data sources
+## Data sources (move to Data)
 The primary data sources that have been used to construct datasets for model training and testing (i.e., ML data) include:
 - GDSC version 6.0 - cell line and drug IDs, treatment response, cell line omics data
 - PubChem - drug SMILES
 - Library of the Integrated Network-based Cellular Signatures (LINCS) - drug SMILES
 
 
-## Data and preprocessing
+## Data and preprocessing (move to Data)
 Cancer cell line (CCL) omics data and treatment response data (IC50) were originally downloaded from the GDSC website. Th canonical SMILES of 223 drugs were obtained from either PubChem or LINCS. Refer to [Data.md](Data.md) for more info regarding the raw data provided with the original tCNNS model repo and the preprocessing scripts to generate ML data for model training and testing.
 
 
-## Evaluation
+## Evaluation *(not required)*
 Several evaluation schemes were used for the analysis of prediction performance.
 
 - Mixed set: Cell lines and drugs can appear in train, validation, and test sets.
@@ -29,6 +28,10 @@ Several evaluation schemes were used for the analysis of prediction performance.
 - Modification of SMILES format:  The one-hot representation of the SMILES format was modified in three ways for assessing whether the model captures the biological meaning in the data versus the statistical pattern of the data.
 
 ## Modifications for IMPROVE Framework
+Describe any changes to the original code to work with the IMPROVE Framework.
+
+## Hyperparameters
+Table of hyperparameters that can be adjusted for tCNNS.
 
 ## URLs
 - [Original GitHub](https://github.com/Lowpassfilter/tCNNS-Project)
