@@ -190,7 +190,7 @@ python tcnns_train_improve.py
 python tcnns_infer_improve.py
 ```
 
-## Cross-Study Analysis (CSA) Workflow
+## Model Workflow
 
 Different source files and target files can be used to produce a CSA of tCNNS models. Specify the datasets to be trained and tested on in the model config file (i.e. `tcnns_csa_params.txt`):
 
@@ -253,6 +253,8 @@ python tcnns_infer_improve.py --config tcnns_csa_params.txt
 ```
 
 The scripts uses processed data and the trained model to evaluate performance found in the following files: `val_scores.json` and `val_predicted.csv`.
+
+## Cross-Study Analysis (CSA) Workflow
 
 ## Reference
 Liu, P., Li, H., Li, S., & Leung, K. S. (2019). Improving prediction of phenotypic drug response on cancer cell lines using deep convolutional network. BMC bioinformatics, 20(1), 408. https://doi.org/10.1186/s12859-019-2910-6
