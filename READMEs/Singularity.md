@@ -3,7 +3,7 @@
 Describe how to create and run Singularity
 
 
-### With Singularity
+## Installation with Singularity
 
 Model definition file `tCNNS.def` is located [here](https://github.com/JDACS4C-IMPROVE/Singularity/blob/develop/definitions/tCNNS.def). 
 
@@ -19,7 +19,7 @@ mkdir images
 singularity build --fakeroot images/tCNNS.sif definitions/tCNNS.def 
 ```
 
-### With Singularity
+### Running with Singularity
 
 To use the container, you must make your `CANDLE_DATA_DIR` available inside the container as `/candle_data_dir`.
 
@@ -54,4 +54,11 @@ singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.
 Infer:
 ```sh
 singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER infer.sh $CUDA_VISIBLE_DEVICES /candle_data_dir 
+```
+
+### Changing Hyperparameters
+Alternatively, one can modify the hyperparameters on the command line like so:
+
+```sh
+singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.sh $CUDA_VISIBLE_DEVICES /candle_data_dir --epochs 1
 ```
