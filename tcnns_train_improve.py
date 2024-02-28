@@ -132,7 +132,8 @@ def create_batch(batch_size, label, positions, response_dict, drug_smile, mutati
     assert label in response_dict, f"key {label} not in dictionary"
     value_shape = response_dict[label].shape
     value = np.zeros((value_shape[0], value_shape[1], 1))
-    value[ :, :, 0 ] = response_dict[label]
+    #value[ :, :, 0 ] = response_dict[label]
+    value[ :, :, ] = response_dict[label]
 
     # transpose dataframe
     drug_smile = np.transpose(drug_smile, (0, 2, 1)) 
@@ -362,7 +363,7 @@ def run(params: Dict):
         
     # initialize saver object
     saver = tf.train.Saver(var_list=tf.trainable_variables())
-    
+
     # train model
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -508,14 +509,19 @@ def run(params: Dict):
         cell_id_list = []
         val_true = []
         for i in range(len(valid.positions)):
-            row = valid.positions[i][0]
-            col = valid.positions[i][1]
+            row = valid.positions[i][0] # didx
+            col = valid.positions[i][1] # cidx
+            tidx = valid.positions[i][2]
             valid_drug = np.array(valid.drug[row])
             #drug_id_list.append(drug_cell_dict[params["drug_col_name"]][row])
             valid_cell = np.array(valid.cell[col])
             #cell_id_list.append(drug_cell_dict[params["canc_col_name"]][col])
-            valid_value = np.array(valid.value[row, col])
-            val_true.append(valid_value[0])
+            #valid_value = np.array(valid.value[row, col])
+            valid_value = np.array(valid.value[row, tidx])
+            #print(valid_value)
+            #val_true.append(valid_value[0])
+            val_true.append(vl_drug_cell_dict["response_values"][i])
+            #print(vl_drug_cell_dict["response_values"][i])
         
             prediction = sess.run(output_layer, feed_dict={"Placeholder:0": np.reshape(valid_drug,(1,valid_drug.shape[0],valid_drug.shape[1])),
                                                 "Placeholder_1:0": np.reshape(valid_cell, (1, valid_cell.shape[0])), 

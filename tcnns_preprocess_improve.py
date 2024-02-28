@@ -305,7 +305,7 @@ def save_cell_mut_matrix(data_dir, raw_data_subdir, raw_genetic_features_file, d
 def save_cell_mut_matrix_csa(filepath, data_subdir, gf_df, label="train", sample_name="sample_id"):
     '''function for csa data'''
     # transform from long to wide format
-    gf_df_wide= gf_df.pivot_table(index=sample_name, columns="genetic_feature", values="is_mutated").reset_index()
+    gf_df_wide = gf_df.pivot_table(index=sample_name, columns="genetic_feature", values="is_mutated").reset_index()
     # convert dataframe to array
     matrix = gf_df_wide.iloc[: , 1:].to_numpy()
 
@@ -498,15 +498,18 @@ def save_drug_cell_matrix_csa(filepath, data_subdir, rs_df, d_id, c_id, label="t
     d_index = [d_dict[i] for i in d_id]
     d_pos = [d_dict[i] for i in rs_drug_cids]
     c_dict = {val: idx + 0 for idx, val in enumerate(c_id)}
-    c_index = [c_dict[i] for i in c_id]
+    #c_index = [c_dict[i] for i in c_id]
     #c_pos = [c_dict[i] for i in rs_cell_ids]
     c_pos = [c_dict[i.split("_")[0]] for i in rs_temp_cell_ids]
     t_dict = {val: idx + 0 for idx, val in enumerate(list(set(rs_temp_cell_ids)))}
     t_index = [t_dict[i] for i in list(set(rs_temp_cell_ids))]
+    t_pos = [t_dict[i] for i in rs_temp_cell_ids]
     print(len(t_index))
     
     # save positions
-    positions = np.array(list(np.array(zip(d_pos, c_pos)).tolist()))
+    #positions = np.array(list(np.array(zip(d_pos, c_pos)).tolist()))
+    #positions = np.array(list(np.array(zip(d_pos, c_pos, t_index)).tolist()))
+    positions = np.array(list(np.array(zip(d_pos, c_pos, t_pos)).tolist()))
     save_dict["positions"] = positions
     print(len(positions))
 
@@ -514,7 +517,8 @@ def save_drug_cell_matrix_csa(filepath, data_subdir, rs_df, d_id, c_id, label="t
     #matrix = np.zeros(shape=(len(d_dict), len(rs_temp_cell_ids), 1), dtype=np.float32)
     matrix = np.zeros(shape=(len(d_dict), len(t_dict), 1), dtype=np.float32)
     for idx, x in enumerate(positions):
-        matrix[x[0], x[1], 0] = rs_response_vals[idx]
+        #matrix[x[0], x[1], 0] = rs_response_vals[idx]
+        matrix[x[0], x[2], 0] = rs_response_vals[idx]
     print(matrix.shape)
     print(matrix)
     #sub_matrix = matrix[d_index, :][:, c_index]
@@ -523,10 +527,10 @@ def save_drug_cell_matrix_csa(filepath, data_subdir, rs_df, d_id, c_id, label="t
     print(sub_matrix)
     # save matrix
     #save_dict[response_label] = sub_matrix[:, :, 0]
-    save_dict[response_label] = sub_matrix[:, :, 0]
-    print(save_dict[response_label].shape)
-    print(save_dict[response_label])
-    #save_dict[response_label] = rs_response_vals
+    #save_dict[response_label] = sub_matrix[:, :, 0]
+    #print(save_dict[response_label].shape)
+    #print(save_dict[response_label])
+    save_dict[response_label] = sub_matrix
     # save as npy file
     response_file_name = f"{label}_drug_cell_interaction.npy"
     np.save(os.path.join(filepath, data_subdir, response_file_name), save_dict)

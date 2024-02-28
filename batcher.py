@@ -23,20 +23,32 @@ class Batch():
         cell = []
         drug = []
         value = []
+        """
         for row, col in sub_posi:
             drug.append(self.drug[row])
             cell.append(self.cell[col])
             value.append(self.value[row, col])
+        """
+        for didx, cidx, tidx in sub_posi:
+            drug.append(self.drug[didx])
+            cell.append(self.cell[cidx])
+            value.append(self.value[didx,tidx])
         return np.array(value), np.array(drug), np.array(cell)
     
     def whole_batch(self):
         cell = []
         drug = []
         value = []
+        for didx, cidx, tidx in self.positions:
+            drug.append(self.drug[didx])
+            cell.append(self.cell[cidx])
+            value.append(self.value[didx,tidx])
+        """
         for row, col in self.positions:
             drug.append(self.drug[row])
             cell.append(self.cell[col])
             value.append(self.value[row, col])
+        """
         return np.array(value), np.array(drug), np.array(cell)
         
     def diy_batch(self, k):

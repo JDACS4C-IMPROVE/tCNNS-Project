@@ -54,7 +54,8 @@ def create_batch(batch_size, label, positions, response_dict, drug_smile, mutati
     assert label in response_dict, f"key {label} not in dictionary"
     value_shape = response_dict[label].shape
     value = np.zeros((value_shape[0], value_shape[1], 1))
-    value[ :, :, 0 ] = response_dict[label]
+    #value[ :, :, 0 ] = response_dict[label]
+    value[ :, :,  ] = response_dict[label]
 
     # transpose dataframe
     drug_smile = np.transpose(drug_smile, (0, 2, 1)) 
@@ -172,15 +173,18 @@ def run(params: Dict):
         drug_id_list = []
         cell_id_list = []
         test_true = []
+
         for i in range(len(test.positions)):
             row = test.positions[i][0]
             col = test.positions[i][1]
+            tidx = test.positions[i][2]
             test_drug = np.array(test.drug[row])
             #drug_id_list.append(drug_cell_dict[params.drug_col_name][row])
             test_cell = np.array(test.cell[col])
             #cell_id_list.append(drug_cell_dict[params.canc_col_name][col])
-            test_value = np.array(test.value[row, col])
-            test_true.append(test_value[0])
+            test_value = np.array(test.value[row, tidx])
+            #test_true.append(test_value[0])
+            test_true.append(drug_cell_dict["response_values"][i])
         
             prediction = sess.run(output_layer, feed_dict={"Placeholder:0": np.reshape(test_drug,(1,test_drug.shape[0],test_drug.shape[1])),
                                                 "Placeholder_1:0": np.reshape(test_cell, (1, test_cell.shape[0])), 
