@@ -5,12 +5,12 @@ Twin convolutional neural network for drugs in SMILES format.
 This model has been curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE).  
 
 The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Project).  
-See [Reference](#reference) for the original paper.
-See [Model](READMEs/Model.md) for more details.
-See [Data](READMEs/Data.md) for more details.
-See [Reproducing](READMEs/Reproducing.md) to reproduce the original results of the paper in the IMPROVE framework.
-See [HPO](READMEs/HPO.md) for how to change the hyperparameters.
-See [CSA](READMEs/CSA.md) for details on how to run the Cross-Study Analysis workflow.
+See [Reference](#reference) for the original paper.  
+See [Model](READMEs/Model.md) for more details.  
+See [Data](READMEs/Data.md) for more details.  
+See [Reproducing](READMEs/Reproducing.md) to reproduce the original results of the paper in the IMPROVE framework.  
+See [HPO](READMEs/HPO.md) for how to change the hyperparameters.  
+See [CSA](READMEs/CSA.md) for details on how to run the Cross-Study Analysis workflow.  
 
 ## Requirements
 
@@ -102,4 +102,3 @@ bash infer.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR
 
 ## Reference
 Liu, P., Li, H., Li, S., & Leung, K. S. (2019). Improving prediction of phenotypic drug response on cancer cell lines using deep convolutional network. BMC bioinformatics, 20(1), 408. https://doi.org/10.1186/s12859-019-2910-6
-
