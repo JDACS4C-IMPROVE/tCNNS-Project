@@ -1,11 +1,15 @@
 # tCNNS-Project
 Twin convolutional neural network for drugs in SMILES format.
 
-**Type** Monotherapy drug response prediction
-**Status** Active 
-
 **tCNNS** is a single-drug response prediction model that uses drug and genomic features.  
-This model has been curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE).  
+This model has been curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE). 
+
+**Type**: Monotherapy drug response prediction  
+**Status**: Active 
+
+```diff
++ where do we define the status
+``` 
 
 The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Project).  
 See [Reference](#reference) for the original paper.  
@@ -70,8 +74,6 @@ Navigate to the model repo:
 ```sh
 cd ../tCNNS-Project
 ```
-
-
 
 ## Example Usage 
 See [Singularity](READMEs/Singularity.md) for usage with Singularity.
