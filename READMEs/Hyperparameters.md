@@ -2,7 +2,7 @@
 
 Hyperparameters and other variables of the model can be adjusted in the config file `tcnns_default_model.txt`. 
 
-A different config file with the same variables can be called by adding the *config* option: 
+A different config file can be called by adding the *config* option: 
 
 ```sh
 export CANDLE_CONFIG=tcnns_benchmark_model.txt
