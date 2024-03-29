@@ -2,7 +2,9 @@
 
 Different source files and target files can be used to produce a CSA of tCNNS models. Specify the datasets to be trained and tested on in the model config file (i.e. `tcnns_csa_params.txt`):
 
-TO DO: Link to page that describes CSA?
+```diff
++ TO DO: Link to page that describes CSA?
+```
 
 ```
 [Global_Params]
@@ -12,10 +14,19 @@ target_data = ["gCSI"]
 split_ids = [3, 7]
 model_config = "tcnns_csa_params.txt"
 ```
+## Data
+
+See [Data](Data.md) for details of the data used for CSA. 
+
+## Steps
 
 ### 1. Download data and define required environment variable
 
 Download the CSA benchmark data into the model directory from https://web.cels.anl.gov/projects/IMPROVE_FTP/candle/public/improve/benchmarks/single_drug_drp/benchmark-data-pilot1/:
+
+```diff
++should add MoDaC link option as well
+```
 
 ```bash
 wget --cut-dirs=8 -P ./ -nH -np -m https://web.cels.anl.gov/projects/IMPROVE_FTP/candle/public/improve/benchmarks/single_drug_drp/benchmark-data-pilot1/csa_data/
