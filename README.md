@@ -8,7 +8,7 @@ The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Pro
 See [Reference](#reference) for the original paper.  
 See [Model](READMEs/Model.md) for more details.  
 See [Data](READMEs/Data.md) for more details.  
-See [Reproducing](READMEs/Reproducing.md) to reproduce the original results of the paper in the IMPROVE framework.  
+See [Reproducibility](READMEs/Reproducibility.md) to reproduce the original results of the paper in the IMPROVE framework.  
 See [HPO](READMEs/HPO.md) for how to change the hyperparameters.  
 See [CSA](READMEs/CSA.md) for details on how to run the Cross-Study Analysis workflow.  
 
