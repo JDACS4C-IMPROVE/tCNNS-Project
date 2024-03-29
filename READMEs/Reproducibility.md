@@ -2,7 +2,7 @@
 
 The `tcnns_default_model.txt` contains the hyperparameters that were used in the [original paper](#reference). This config file is the default file for the following scripts.   
 
-The original data can be found [here](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/). See [Data](READMEs/Data.md) for more details on the original data.  
+The original data can be found [here](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/). See [Data](Data.md) for more details on the original data.  
 
 ```diff
 + Can also point to data in original GitHub or MoDaC?
