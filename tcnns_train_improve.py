@@ -17,6 +17,7 @@ import subprocess
 from typing import Dict
 import sys
 
+
 # [Req] IMPROVE/CANDLE imports
 from improve import framework as frm
 
@@ -57,12 +58,12 @@ train_params = app_train_params + model_train_params
 metrics_list = ["mse", "rmse", "pcc", "scc", "r2"]
 
 def weight_variable(shape, std_dev, rseed):
-    initial = tf.truncated_normal(shape, stddev=std_dev, seed=rseed)
-    return tf.Variable(initial)
+    initial = tf.truncated_normal(shape, stddev=std_dev, dtype=tf.float16, seed=rseed)
+    return tf.Variable(initial, dtype=tf.float16)
 
 def bias_variable(shape, bias_constant):
-    initial = tf.constant(bias_constant, shape=shape)
-    return tf.Variable(initial) 
+    initial = tf.constant(bias_constant, shape=shape, dtype=tf.float16)
+    return tf.Variable(initial, dtype=tf.float16) 
 
 def conv1d(x, W, conv_stride):
     return tf.nn.conv1d(x, W, conv_stride, padding='SAME')
@@ -89,8 +90,8 @@ def Pearson(a, b):
     return tf.div(up, down)
 
 def Spearman(real, predicted):
-    rs = tf.py_function(stats.spearmanr, [tf.cast(predicted, tf.float32), 
-                       tf.cast(real, tf.float32)], Tout = tf.float32)
+    rs = tf.py_function(stats.spearmanr, [tf.cast(predicted, tf.float16), 
+                       tf.cast(real, tf.float16)], Tout = tf.float16)
     return rs
 
 # moved from batcher.py
@@ -267,10 +268,10 @@ def run(params: Dict):
     # ------------------------------------------------------
 
     # define model
-    drug = tf.placeholder(tf.float32, shape=[None, length_smiles, num_chars_smiles])
-    cell = tf.placeholder(tf.float32, shape=[None, num_cell_features])
-    scores = tf.placeholder(tf.float32, shape=[None, 1])
-    keep_prob = tf.placeholder(tf.float32)
+    drug = tf.placeholder(tf.float16, shape=[None, length_smiles, num_chars_smiles])
+    cell = tf.placeholder(tf.float16, shape=[None, num_cell_features])
+    scores = tf.placeholder(tf.float16, shape=[None, 1])
+    keep_prob = tf.placeholder(tf.float16)
 
     # define drug convolutional layers
     for i in range(0, len(args.drug_conv_out)):
@@ -339,7 +340,7 @@ def run(params: Dict):
     # define loss
     loss = tf.losses.mean_squared_error(scores, y_conv)
     # define optimizer
-    train_step = tf.train.AdamOptimizer(args.learning_rate).minimize(loss)
+    train_step = tf.train.AdamOptimizer(args.learning_rate, epsilon=1e-4).minimize(loss)
 
     # define metrics
     r_square = R2(scores, y_conv)
