@@ -1,259 +1,162 @@
-# tCNNS-Project
-Twin convolutional neural network for drugs in SMILES format.
+# tCNNS
 
-**tCNNS** is a single-drug response prediction model that uses drug and genomic features.  
+This repository demonstrates how to use the [IMPROVE library v0.0.3-beta](https://github.com/JDACS4C-IMPROVE/IMPROVE/tree/v0.0.3-beta) for building a drug response prediction (DRP) model using tCNNS, and provides examples with the benchmark [cross-study analysis (CSA) dataset](https://web.cels.anl.gov/projects/IMPROVE_FTP/candle/public/improve/benchmarks/single_drug_drp/benchmark-data-pilot1/csa_data/).
 
-This model has been curated as a part of the [_IMPROVE Project_](https://github.com/JDACS4C-IMPROVE).  
-The original code can be found [here](https://github.com/Lowpassfilter/tCNNS-Project).  
-See [Reference](#reference) for the original paper.
+This version, tagged as `v0.0.3-beta`, is the final release before transitioning to `v0.1.0-alpha`, which introduces a new API. Version `v0.0.3-beta` and all previous releases have served as the foundation for developing essential components of the IMPROVE software stack. Subsequent releases build on this legacy with an updated API, designed to encourage broader adoption of IMPROVE and its curated models by the research community.
 
-## Model
+A more detailed tutorial can be found [here](https://jdacs4c-improve.github.io/docs/v0.0.3-beta/content/ModelContributorGuide.html).
 
-See [Model](READMEs/Model.md) for more details.
 
-## Data
+## Dependencies
+Installation instuctions are detailed below in [Step-by-step instructions](#step-by-step-instructions).
 
-See [Data](READMEs/Data.md) for more details.
+ML framework:
++ [TensorFlow](https://www.tensorflow.org/) -- deep learning framework for building the prediction model
 
-## Requirements
+IMPROVE dependencies:
++ [IMPROVE v0.0.3-beta](https://github.com/JDACS4C-IMPROVE/IMPROVE/tree/v0.0.3-beta)
++ [candle_lib](https://github.com/ECP-CANDLE/candle_lib) - IMPROVE dependency (enables various hyperparameter optimization on HPC machines) `TODO`: need to fork into IMPROVE project and tag
 
-- `conda`
-or
-- `singularity`
 
-## Installation
 
-### With Conda
+## Dataset
+Benchmark data for cross-study analysis (CSA) can be downloaded from this [site](https://web.cels.anl.gov/projects/IMPROVE_FTP/candle/public/improve/benchmarks/single_drug_drp/benchmark-data-pilot1/csa_data/).
 
-Create a conda environment:
-```sh
-conda create -n tcnns python=3.6.9 tensorflow-gpu=1.15 -y
+The data tree is shown below:
+```
+csa_data/raw_data/
+├── splits
+│   ├── CCLE_all.txt
+│   ├── CCLE_split_0_test.txt
+│   ├── CCLE_split_0_train.txt
+│   ├── CCLE_split_0_val.txt
+│   ├── CCLE_split_1_test.txt
+│   ├── CCLE_split_1_train.txt
+│   ├── CCLE_split_1_val.txt
+│   ├── ...
+│   ├── GDSCv2_split_9_test.txt
+│   ├── GDSCv2_split_9_train.txt
+│   └── GDSCv2_split_9_val.txt
+├── x_data
+│   ├── cancer_copy_number.tsv
+│   ├── cancer_discretized_copy_number.tsv
+│   ├── cancer_DNA_methylation.tsv
+│   ├── cancer_gene_expression.tsv
+│   ├── cancer_miRNA_expression.tsv
+│   ├── cancer_mutation_count.tsv
+│   ├── cancer_mutation_long_format.tsv
+│   ├── cancer_mutation.parquet
+│   ├── cancer_RPPA.tsv
+│   ├── drug_ecfp4_nbits512.tsv
+│   ├── drug_info.tsv
+│   ├── drug_mordred_descriptor.tsv
+│   └── drug_SMILES.tsv
+└── y_data
+    └── response.tsv
 ```
 
-Activate the environment:
-```sh
+
+## Model scripts and parameter file
++ `tcnns_preprocess_improve.py` - takes benchmark data files and transforms into files for trianing and inference
++ `tcnns_train_improve.py` - trains the tCNNS model
++ `tcnns_infer_improve.py` - runs inference with the trained tCNNS model
++ `tcnns_csa_params.txt` - default parameter file
+
+
+
+# Step-by-step instructions
+
+### 1. Clone the model repository
+```
+git clone https://github.com/JDACS4C-IMPROVE/tCNNS-Project
+cd tCNNS-Project
+git checkout v0.0.3-beta
+```
+
+
+### 2. Set computational environment
+Create conda env 
+```
+conda create -n tcnns python=3.6.9 tensorflow-gpu=1.15 -y
 conda activate tcnns
 ```
 
-Clone the repo:
-```sh
-git clone https://github.com/JDACS4C-IMPROVE/tCNNS-Project.git
-cd tCNNS-Project
-git checkout develop
+
+
+### 3. Run `setup_improve.sh`.
+```bash
+source setup_improve.sh
 ```
 
-Install CANDLE package:
-```sh
-pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
-```
+This will:
+1. Download cross-study analysis (CSA) benchmark data into `./csa_data/`.
+2. Clone IMPROVE repo (checkout tag `v0.0.3-beta`) outside the GraphDRP model repo
+3. Set up env variables: `IMPROVE_DATA_DIR` (to `./csa_data/`) and `PYTHONPATH` (adds IMPROVE repo).
 
-Clone the `IMPROVE` repo to a directory of your preference:
-```sh
-cd ..
-git clone https://github.com/JDACS4C-IMPROVE/IMPROVE
-cd IMPROVE/
-git checkout develop
-```
 
-To use the IMPROVE libraries and scripts, set the environment variable like so:
-```sh
-export PYTHONPATH=$PYTHONPATH:/lambda_stor/homes/ac.sejones/test/IMPROVE
-```
-
-Navigate to the model repo:
-```sh
-cd ../tCNNS-Project
-```
-
-### With Singularity
-
-Model definition file `tCNNS.def` is located [here](https://github.com/JDACS4C-IMPROVE/Singularity/blob/develop/definitions/tCNNS.def). 
-
-Clone IMPROVE/Singularity repo:
-```sh
-git clone https://github.com/JDACS4C-IMPROVE/Singularity.git
-cd Singularity
-```
-
-Build Singularity:
-```sh
-mkdir images
-singularity build --fakeroot images/tCNNS.sif definitions/tCNNS.def 
-```
-
-## Example Usage 
-
-### With Conda
-
-Environment variables:
-
- * `CANDLE_DATA_DIR` - path to data, model, and results directory
- * `CUDA_VISIBLE_DEVICES` - which GPUs should be used
-
-Set environment variables:
-```sh
-export CANDLE_DATA_DIR=candle_data_dir
-export CUDA_VISIBLE_DEVICES=0
-```
-
-Preprocess:
-```sh
-bash preprocess.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR
-```
-
-Train:
-```sh
-bash train.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR
-```
-
-Infer:
-```sh
-bash infer.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR
-```
-
-### With Singularity
-
-To use the container, you must make your `CANDLE_DATA_DIR` available inside the container as `/candle_data_dir`.
-
-Environment variables:
-
- * `CANDLE_DATA_DIR` - path to data, model, and results directory
- * `CONTAINER` - path and name of image file
- * `CUDA_VISIBLE_DEVICES` - which GPUs should be used
-
-Singularity options:
-
- * `--nv` - enable Nvidia support
- * `--bind` - make the directory available inside container
-
-Set environment variables:
-```sh
-export CANDLE_DATA_DIR=candle_data_dir
-export CONTAINER=tCNNS.sif
-export CUDA_VISIBLE_DEVICES=0
-```
-
-Preprocess:
-```sh
-singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER preprocess.sh $CUDA_VISIBLE_DEVICES /candle_data_dir 
-```
-
-Train:
-```sh
-singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.sh $CUDA_VISIBLE_DEVICES /candle_data_dir 
-```
-
-Infer:
-```sh
-singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER infer.sh $CUDA_VISIBLE_DEVICES /candle_data_dir 
-```
-
-## Changing hyperparameters
-
-Hyperparameters of the model can be adjusted in the config file `tcnns_default_model.txt`. 
-
-A different config file with the same variables can be called by adding a new environment variable: 
-
-```sh
-export CANDLE_CONFIG=tcnns_benchmark_model.txt
-bash train.sh $CUDA_VISIBLE_DEVICES $CANDLE_DATA_DIR $CANDLE_CONFIG
-```
-
-To get more info on the hyperparameters, refer to [tcnns.py](tcnns.py) or run the following command:
-```
-tcnns_train_improve.py --help
-```
-
-Alternatively, one can modify the hyperparameters on the command line like so:
-
-```sh
-singularity exec --nv --bind $CANDLE_DATA_DIR:/candle_data_dir $CONTAINER train.sh $CUDA_VISIBLE_DEVICES /candle_data_dir --epochs 1
-```
-
-## Reproducing original results
-
-The `tcnns_default_model.txt` contains the hyperparameters that were used in the [original paper](#reference). This config file is the default file for the following scripts.   
-
-Both the raw and processed data are available [here](https://ftp.mcs.anl.gov/pub/candle/public/improve/model_curation_data/tCNNS/). See [Data](READMEs/Data.md) for more details on the original data.  
-
-```sh
-# set environment variable to point to data folder
-export CANDLE_DATA_DIR=candle_data_dir
-
-# preprocess raw data
+### 4. Preprocess CSA benchmark data (_raw data_) to construct model input data (_ML data_)
+```bash
 python tcnns_preprocess_improve.py
+```
 
-# train model
+Preprocesses the CSA data and creates train, validation (val), and test datasets.
+
+Generates:
+* nine model input data files (each has a file for `train`, `val`, and `infer`): `*cell_mut_matrix.npy`, `*drug_onehot_smiles.npy*`, `*drug_cell_interaction.npy`
+* three tabular data files, each containing the drug response values (i.e. AUC) and corresponding metadata: `train_y_data.csv`, `val_y_data.csv`, `test_y_data.csv`
+
+```
+ml_data
+└── GDSCv1-GDSCv1
+    └── split_4
+        ├── test_cell_mut_matrix.npy	
+        ├── test_drug_onehot_smiles.npy  
+        ├── train_cell_mut_matrix.npy	      
+        ├── train_drug_onehot_smiles.npy  
+        ├── val_cell_mut_matrix.npy	   
+        ├── val_drug_onehot_smiles.npy
+        ├── test_drug_cell_interaction.npy	
+        ├── test_y_data.csv		     
+        ├── train_drug_cell_interaction.npy  
+        ├── train_y_data.csv		    
+        ├── val_drug_cell_interaction.npy  
+        └── val_y_data.csv
+```
+
+
+### 5. Train tCNNS model
+```bash
 python tcnns_train_improve.py
-
-# infer with trained model on test data
-python tcnns_infer_improve.py
 ```
 
-## Cross-Study Analysis (CSA) Workflow
+Trains tCNNS using the model input data: `train_cell_mut_matrix.npy`, `train_drug_onehot_smiles.npy*`, `train_drug_cell_interaction.npy` (training), `val_cell_mut_matrix.npy`, `val_drug_onehot_smiles.npy*`, `val_drug_cell_interaction.npy` (for early stopping).
 
-Different source files and target files can be used to produce a CSA of tCNNS models. Specify the datasets to be trained and tested on in the model config file (i.e. `tcnns_csa_params.txt`):
-
-TO DO: Link to page that describes CSA?
-
+Generates:
+* trained model: `model.pt`
+* predictions on val data (tabular data): `val_y_data_predicted.csv`
+* prediction performance scores on val data: `val_scores.json`
 ```
-[Global_Params]
-model_name = "CSA_tCNNS"
-source_data = ["gCSI"]
-target_data = ["gCSI"]
-split_ids = [3, 7]
-model_config = "tcnns_csa_params.txt"
-```
-
-### 1. Download data and define required environment variable
-
-Download the CSA benchmark data into the model directory from https://web.cels.anl.gov/projects/IMPROVE_FTP/candle/public/improve/benchmarks/single_drug_drp/benchmark-data-pilot1/:
-
-```bash
-wget --cut-dirs=8 -P ./ -nH -np -m https://web.cels.anl.gov/projects/IMPROVE_FTP/candle/public/improve/benchmarks/single_drug_drp/benchmark-data-pilot1/csa_data/
+out_models
+└── GDSCv1
+    └── split_4
+        ├── model.pt
+        ├── val_scores.json
+        └── val_y_data_predicted.csv
 ```
 
-Set environment variables:
-```bash
-export IMPROVE_DATA_DIR="./csa_data/"
-export PYTHONPATH=$PYTHONPATH:/lambda_stor/homes/ac.sejones/test/IMPROVE
+
+### 6. Run inference on test data with the trained model
+```python tcnns_infer_improve.py```
+
+Evaluates the performance on a test dataset with the trained model.
+
+Generates:
+* predictions on test data (tabular data): `test_y_data_predicted.csv`
+* prediction performance scores on test data: `test_scores.json`
 ```
-
-### 2. Proprocess raw data
-
-```bash
-python tcnns_preprocess_improve.py --config tcnns_csa_params.txt
+out_infer
+└── GDSCv1-GDSCv1
+    └── split_4
+        ├── test_scores.json
+        └── test_y_data_predicted.csv
 ```
-
-*Make sure that the model config file is in `IMPROVE_DATA_DIR`.*
-
-This script will produce the following files:
-```
-out_tCNNS/
-├── processed
-│   ├── test_data.pt
-│   ├── train_data.pt
-│   └── val_data.pt
-├── test_y_data.csv
-├── train_y_data.csv
-└── val_y_data.csv
-```
-
-### 3. Train model
-```bash
-python tcnns_train_improve.py --config tcnns_csa_params.txt
-```
-
-This trains a tCNNS model using the processed data. By default, this model uses early stopping.
-
-### 4. Infer with trained model
-
-```bash
-python tcnns_infer_improve.py --config tcnns_csa_params.txt
-```
-
-The scripts uses processed data and the trained model to evaluate performance found in the following files: `val_scores.json` and `val_predicted.csv`.
-
-## Reference
-Liu, P., Li, H., Li, S., & Leung, K. S. (2019). Improving prediction of phenotypic drug response on cancer cell lines using deep convolutional network. BMC bioinformatics, 20(1), 408. https://doi.org/10.1186/s12859-019-2910-6
-
