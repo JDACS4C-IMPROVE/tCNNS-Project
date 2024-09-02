@@ -79,6 +79,7 @@ Create conda env
 ```
 conda create -n tcnns python=3.6.9 tensorflow-gpu=1.15 -y
 conda activate tcnns
+pip install git+https://github.com/ECP-CANDLE/candle_lib@develop
 ```
 
 
