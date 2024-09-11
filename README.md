@@ -127,7 +127,7 @@ python tcnns_train_improve.py --input_dir exp_result --output_dir exp_result
 Trains tCNNS using the model input data: `train_cell_mut_matrix.npy`, `train_drug_onehot_smiles.npy*`, `train_drug_cell_interaction.npy` (training), `val_cell_mut_matrix.npy`, `val_drug_onehot_smiles.npy*`, `val_drug_cell_interaction.npy` (for early stopping).
 
 Generates:
-* trained model: `model.pt`
+* trained model files: `model/*`
 * predictions on val data (tabular data): `val_y_data_predicted.csv`
 * prediction performance scores on val data: `val_scores.json`
 ```
