@@ -211,7 +211,7 @@ def main(args):
         additional_definitions=infer_params,
         required=None,
     )
-    test_scores = run(params)
+    status = run(params)
     print("\nFinished model inference.")
     end = time.time()
     print("Total runtime: {}".format(end-start))
