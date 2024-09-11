@@ -1,60 +1,26 @@
 import os
 from pathlib import Path
-import candle
 import tensorflow as tf
 from batcher import *
-import tcnns
 import numpy as np
 import json
 from sklearn.metrics import mean_squared_error
 from scipy import stats
 import pandas as pd
 import math
-import improve_utils
-#from improve_utils import improve_globals as ig
 import time
 import subprocess
 from typing import Dict
 import sys
 
-# [Req] IMPROVE/CANDLE imports
-from improve import framework as frm
+# [Req] IMPROVE imports
+from improvelib.applications.drug_response_prediction.config import DRPTrainConfig
+from improvelib.utils import str2bool
+import improvelib.utils as frm
+from model_params_def import train_params
 
-# [Req] Imports from preprocess script
-from tcnns_preprocess_improve import preprocess_params
-
-# Imports from infer script
-#from tcnns_infer_improve import *
-
-#file_path = os.path.dirname(os.path.realpath(__file__))
-filepath = Path(__file__).resolve().parent # [Req]
-
-# ---------------------
-# [Req] Parameter lists
-# ---------------------
-# Two parameter lists are required:
-# 1. app_train_params
-# 2. model_train_params
-#
-# The values for the parameters in both lists should be specified in a
-# parameter file that is passed as default_model arg in
-# frm.initialize_parameters().
-
-# 1. App-specific params (App: monotherapy drug response prediction)
-# Currently, there are no app-specific params for this script.
-app_train_params = []
-
-# 2. Model-specific params (Model: LightGBM)
-# All params in model_train_params are optional.
-# If no params are required by the model, then it should be an empty list.
-model_train_params = []
-
-# Combine the two lists (the combined parameter list will be passed to
-# frm.initialize_parameters() in the main().
-train_params = app_train_params + model_train_params
-
-# [Req] List of metrics names to compute prediction performance scores
-metrics_list = ["mse", "rmse", "pcc", "scc", "r2"]
+# [Req]
+filepath = Path(__file__).resolve().parent
 
 def weight_variable(shape, std_dev, rseed):
     initial = tf.truncated_normal(shape, stddev=std_dev, seed=rseed)
@@ -185,23 +151,21 @@ def run(params: Dict):
     """ Run model training.
 
     Args:
-        params (dict): dict of CANDLE/IMPROVE parameters and parsed values.
+        params (dict): dict of IMPROVE parameters and parsed values.
 
     Returns:
-        dict: prediction performance scores computed on validation data
-            according to the metrics_list.
+        dict: prediction performance scores computed on validation data.
     """
     # ------------------------------------------------------
     # [Req] Create output dir and build model path
     # ------------------------------------------------------
     # Create output dir for trained model, val set predictions, val set
     # performance scores
-    frm.create_outdir(outdir=params["model_outdir"])
+    frm.create_outdir(outdir=params["output_dir"])
 
     # Build model path
-    modelpath = frm.build_model_path(params, model_dir=params["model_outdir"])
-
-    args = candle.ArgumentStruct(**params)
+    #modelpath = frm.build_model_path(model_dir=params["output_dir"])
+    modelpath = os.path.join(params["output_dir"], params["model_file_name"]) #TODO model_sub_dir
 
     # check for GPU
     if tf.test.gpu_device_name():
@@ -211,9 +175,9 @@ def run(params: Dict):
     else:
         print("GPU not available")
     
-    if args.use_original_data:
+    #if params["use_original_data"]:
         # get data from server if processed original data is not available
-        candle.file_utils.get_file(args.processed_data, f"{args.data_url}/{args.processed_data}", cache_subdir = args.cache_subdir)
+        #candle.file_utils.get_file(args.processed_data, f"{args.data_url}/{args.processed_data}", cache_subdir = args.cache_subdir)
 
     # check files in data processed folder
     #proc = subprocess.Popen([f"ls {args.data_dir}/{args.data_subdir}/*"], stdout=subprocess.PIPE, shell=True)   
@@ -231,19 +195,19 @@ def run(params: Dict):
     # ------------------------------------------------------
     # Load model input data (ML data)
     # ------------------------------------------------------
-    if args.use_original_data:
-        drug_smile_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.drug_file), encoding="latin1", allow_pickle=True).item()
-        drug_cell_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.response_file), encoding="latin1", allow_pickle=True).item()
-        cell_mut_dict = np.load(os.path.join(args.data_dir, args.data_subdir, args.cell_file), encoding="latin1", allow_pickle=True).item()
+    if params["use_original_data"]:
+        drug_smile_dict = np.load(os.path.join(params["data_dir"], params["data_subdir"], params["drug_file"]), encoding="latin1", allow_pickle=True).item()
+        drug_cell_dict = np.load(os.path.join(params["data_dir"], params["data_subdir"], params["response_file"]), encoding="latin1", allow_pickle=True).item()
+        cell_mut_dict = np.load(os.path.join(params["data_dir"], params["data_subdir"], params["cell_file"]), encoding="latin1", allow_pickle=True).item()
     else:
         # train data
-        drug_smile_dict = np.load(Path(params["train_ml_data_dir"])/"train_drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
-        drug_cell_dict = np.load(Path(params["train_ml_data_dir"])/"train_drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
-        cell_mut_dict = np.load(Path(params["train_ml_data_dir"])/"train_cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
+        drug_smile_dict = np.load(Path(params["input_dir"])/"train_drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
+        drug_cell_dict = np.load(Path(params["input_dir"])/"train_drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
+        cell_mut_dict = np.load(Path(params["input_dir"])/"train_cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
         # val data
-        vl_drug_smile_dict = np.load(Path(params["val_ml_data_dir"])/"val_drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
-        vl_drug_cell_dict = np.load(Path(params["val_ml_data_dir"])/"val_drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
-        vl_cell_mut_dict = np.load(Path(params["val_ml_data_dir"])/"val_cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
+        vl_drug_smile_dict = np.load(Path(params["input_dir"])/"val_drug_onehot_smiles.npy", encoding="latin1", allow_pickle=True).item()
+        vl_drug_cell_dict = np.load(Path(params["input_dir"])/"val_drug_cell_interaction.npy", encoding="latin1", allow_pickle=True).item()
+        vl_cell_mut_dict = np.load(Path(params["input_dir"])/"val_cell_mut_matrix.npy", encoding="latin1", allow_pickle=True).item()
 
     # define variables
     c_chars = drug_smile_dict["c_chars"]
@@ -253,7 +217,7 @@ def run(params: Dict):
     cell_mut = cell_mut_dict["cell_mut"]
     all_positions = drug_cell_dict["positions"] # array of zipped object
     all_positions = np.array(list(all_positions.tolist()))
-    np.random.seed(args.rng_seed)
+    np.random.seed(params["rng_seed"])
     np.random.shuffle(all_positions)
     length_smiles = len(canonical[0]) # length of smiles
     num_cell_features = len(mut_names) # number of mutations
@@ -273,39 +237,39 @@ def run(params: Dict):
     keep_prob = tf.placeholder(tf.float32)
 
     # define drug convolutional layers
-    for i in range(0, len(args.drug_conv_out)):
+    for i in range(0, len(params["drug_conv_out"])):
         if i == 0:
-            drug_conv_out = args.drug_conv_out[i] 
-            drug_conv_pool = args.drug_pool[i]
-            drug_conv_w = weight_variable([args.drug_conv_width[i], num_chars_smiles, drug_conv_out], args.std_dev, args.rng_seed)
-            drug_conv_b = bias_variable([drug_conv_out], args.bias_constant)
-            drug_conv_h = tf.nn.relu(conv1d(drug, drug_conv_w, args.conv_stride) + drug_conv_b)
+            drug_conv_out = params["drug_conv_out"][i] 
+            drug_conv_pool = params["drug_pool"][i]
+            drug_conv_w = weight_variable([params["drug_conv_width"][i], num_chars_smiles, drug_conv_out], params["std_dev"], params["rng_seed"])
+            drug_conv_b = bias_variable([drug_conv_out], params["bias_constant"])
+            drug_conv_h = tf.nn.relu(conv1d(drug, drug_conv_w, params["conv_stride"]) + drug_conv_b)
             drug_conv_p = max_pool_1d(drug_conv_h, [drug_conv_pool], [drug_conv_pool])
         else:
-            drug_conv_out = args.drug_conv_out[i] 
-            drug_conv_pool = args.drug_pool[i]
-            drug_conv_w = weight_variable([args.drug_conv_width[i], args.drug_conv_out[i-1], drug_conv_out], args.std_dev, args.rng_seed)
-            drug_conv_b = bias_variable([drug_conv_out], args.bias_constant)
-            drug_conv_h = tf.nn.relu(conv1d(drug_conv_p, drug_conv_w, args.conv_stride) + drug_conv_b)
+            drug_conv_out = params["drug_conv_out"][i]
+            drug_conv_pool = params["drug_pool"][i]
+            drug_conv_w = weight_variable([params["drug_conv_width"][i], params["drug_conv_out"][i-1], drug_conv_out], params["std_dev"], params["rng_seed"])
+            drug_conv_b = bias_variable([drug_conv_out], params["bias_constant"])
+            drug_conv_h = tf.nn.relu(conv1d(drug_conv_p, drug_conv_w, params["conv_stride"]) + drug_conv_b)
             drug_conv_p = max_pool_1d(drug_conv_h, [drug_conv_pool], [drug_conv_pool])
 
     # define cell convolutional layers
-    for i in range(0, len(args.cell_conv_out)):
+    for i in range(0, len(params["cell_conv_out"])):
         if i == 0:
-            cell_conv_out = args.cell_conv_out[i]
-            cell_conv_pool = args.cell_pool[i]
+            cell_conv_out = params["cell_conv_out"][i]
+            cell_conv_pool = params["cell_pool"][i]
             cell_tensor = tf.expand_dims(cell, 2)
-            cell_conv_w = weight_variable([args.cell_conv_width[i], 1, cell_conv_out], args.std_dev, args.rng_seed)
-            cell_conv_b = weight_variable([cell_conv_out], args.bias_constant, args.rng_seed)
-            cell_conv_h = tf.nn.relu(conv1d(cell_tensor, cell_conv_w, args.conv_stride) + cell_conv_b)
+            cell_conv_w = weight_variable([params["cell_conv_width"][i], 1, cell_conv_out], params["std_dev"], params["rng_seed"])
+            cell_conv_b = weight_variable([cell_conv_out], params["bias_constant"], params["rng_seed"])
+            cell_conv_h = tf.nn.relu(conv1d(cell_tensor, cell_conv_w, params["conv_stride"]) + cell_conv_b)
             cell_conv_p = max_pool_1d(cell_conv_h, [cell_conv_pool], [cell_conv_pool])
         else: 
-            cell_conv_out = args.cell_conv_out[i]
-            cell_conv_pool = args.cell_pool[i]
+            cell_conv_out = params["cell_conv_out"][i]
+            cell_conv_pool = params["cell_pool"][i]
             cell_tensor = tf.expand_dims(cell, 2)
-            cell_conv_w = weight_variable([args.cell_conv_width[i], args.cell_conv_out[i-1], cell_conv_out], args.std_dev, args.rng_seed)
-            cell_conv_b = bias_variable([cell_conv_out], args.bias_constant)
-            cell_conv_h = tf.nn.relu(conv1d(cell_conv_p, cell_conv_w, args.conv_stride) + cell_conv_b)
+            cell_conv_w = weight_variable([params["cell_conv_width"][i], params["cell_conv_out"][i-1], cell_conv_out], params["std_dev"], params["rng_seed"])
+            cell_conv_b = bias_variable([cell_conv_out], params["bias_constant"])
+            cell_conv_h = tf.nn.relu(conv1d(cell_conv_p, cell_conv_w, params["conv_stride"]) + cell_conv_b)
             cell_conv_p = max_pool_1d(cell_conv_h, [cell_conv_pool], [cell_conv_pool])
 
     # merge drug and cell convolutional layers
@@ -315,22 +279,22 @@ def run(params: Dict):
     conv_flat = tf.reshape(conv_merge, [-1, shape[1] * shape[2]])
 
     # define fully connected layers
-    for i in range(0, len(args.dense)):
+    for i in range(0, len(params["dense"])):
         if i == 0:
-            fc_w = weight_variable([shape[1] * shape[2], args.dense[i]], args.std_dev, args.rng_seed)
-            fc_b = bias_variable([args.dense[i]], args.bias_constant)
+            fc_w = weight_variable([shape[1] * shape[2], params["dense"][i]], params["std_dev"], params["rng_seed"])
+            fc_b = bias_variable([params["dense"][i]], params["bias_constant"])
             fc_h = tf.nn.relu(tf.matmul(conv_flat, fc_w) + fc_b)
             fc_drop = tf.nn.dropout(fc_h, keep_prob)
-        elif i == (len(args.dense) - 1): 
-            fc_w = weight_variable([args.dense[i], 1], args.std_dev, args.rng_seed)
-            fc_b = weight_variable([1], args.std_dev, args.rng_seed)
+        elif i == (len(params["dense"]) - 1): 
+            fc_w = weight_variable([params["dense"][i], 1], params["std_dev"], params["rng_seed"])
+            fc_b = weight_variable([1], params["std_dev"], params["rng_seed"])
         else:
-            fc_w = weight_variable([args.dense[i], args.dense[i]], args.std_dev, args.rng_seed)
-            fc_b = bias_variable([args.dense[i]], args.bias_constant)
+            fc_w = weight_variable([params["dense"][i], params["dense"][i]], params["std_dev"], params["rng_seed"])
+            fc_b = bias_variable([params["dense"][i]], params["bias_constant"])
             fc_h = tf.nn.relu(tf.matmul(fc_drop, fc_w) + fc_b)
             fc_drop = tf.nn.dropout(fc_h, keep_prob)
 
-    if args.out_activation == "sigmoid":
+    if params["out_activation"] == "sigmoid":
         # use sigmoid function on output layer; recommended for original data's normalized IC50
         y_conv = tf.nn.sigmoid(tf.matmul(fc_drop, fc_w) + fc_b, name="output_tensor")
     else:
@@ -339,7 +303,7 @@ def run(params: Dict):
     # define loss
     loss = tf.losses.mean_squared_error(scores, y_conv)
     # define optimizer
-    train_step = tf.train.AdamOptimizer(args.learning_rate).minimize(loss)
+    train_step = tf.train.AdamOptimizer(params["learning_rate"]).minimize(loss)
 
     # define metrics
     r_square = R2(scores, y_conv)
@@ -348,18 +312,18 @@ def run(params: Dict):
     spearman = Spearman(scores, y_conv)
 
     # if using original data:
-    if args.use_original_data:
+    if params["use_original_data"]:
         # split data into train, valid, and test datasets
-        train, valid, test = load_data(args.batch_size, args.label_name, all_positions, drug_cell_dict, canonical, cell_mut, args.train_size, args.val_size)
+        train, valid, test = load_data(params["batch_size"], params["label_name"], all_positions, drug_cell_dict, canonical, cell_mut, params["train_size"], params["val_size"])
         # save test positions for inference
         save_dict = {}
         save_dict["positions"] = test.positions
-        np.save(os.path.join(args.data_dir, args.data_subdir, "test_positions.npy"), save_dict)
+        np.save(os.path.join(params["data_dir"], params["data_subdir"], "test_positions.npy"), save_dict)
         print("Saving test data indices for inference.")
     else:
            # create train, valid, and test batch objects
-        train = create_batch(args.batch_size, params["y_col_name"], drug_cell_dict["positions"], drug_cell_dict, drug_smile_dict["canonical"], cell_mut_dict["cell_mut"], dataset_type="train", rseed=args.rng_seed)
-        valid = create_batch(args.batch_size, params["y_col_name"], vl_drug_cell_dict["positions"], vl_drug_cell_dict, vl_drug_smile_dict["canonical"], vl_cell_mut_dict["cell_mut"])
+        train = create_batch(params["batch_size"], params["y_col_name"], drug_cell_dict["positions"], drug_cell_dict, drug_smile_dict["canonical"], cell_mut_dict["cell_mut"], dataset_type="train", rseed=params["rng_seed"])
+        valid = create_batch(params["batch_size"], params["y_col_name"], vl_drug_cell_dict["positions"], vl_drug_cell_dict, vl_drug_smile_dict["canonical"], vl_cell_mut_dict["cell_mut"])
         
     # initialize saver object
     saver = tf.train.Saver(var_list=tf.trainable_variables())
@@ -378,19 +342,19 @@ def run(params: Dict):
         valid_values, valid_drugs, valid_cells = valid.whole_batch()
         epoch = 0
         best_epoch = 0
-        min_loss = args.min_loss
+        min_loss = params["min_loss"]
         count = 0
         epoch_time = []
         val_scores = {}
         # option only runs early stopping
-        if args.epochs == 0:
-            while count < args.es_epochs: 
+        if params["epochs"] == 0:
+            while count < params["es_epochs"]: 
                 epoch_start_time = time.time()
                 train.reset()
                 step = 0
                 while(train.available()):
                     real_values, drug_smiles, cell_muts = train.mini_batch()
-                    train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
+                    train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:params["dropout"]})
                     step += 1
                 valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
                 print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
@@ -413,17 +377,17 @@ def run(params: Dict):
                 epoch_time.append(epoch_end_time - epoch_start_time)
         else:
             # option runs model for x epochs (no early stopping)
-            if args.es_epochs == 0:
-                if args.epochs == 0:
+            if params["es_epochs"] == 0:
+                if params["epochs"] == 0:
                     print("Please specify number of epochs.")
                 else:
-                    for epoch in range(args.epochs):
+                    for epoch in range(params["epochs"]):
                         epoch_start_time = time.time()
                         train.reset()
                         step = 0
                         while(train.available()):
                             real_values, drug_smiles, cell_muts = train.mini_batch()
-                            train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
+                            train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:params["dropout"]})
                             step += 1
                         valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
                         print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
@@ -442,13 +406,13 @@ def run(params: Dict):
                         epoch_time.append(epoch_end_time - epoch_start_time)    
             else:
                 # option runs model for x epochs and uses early stopping
-                while count < args.es_epochs:
+                while count < params["es_epochs"]:
                     epoch_start_time = time.time()
                     train.reset()
                     step = 0
                     while(train.available()):
                         real_values, drug_smiles, cell_muts = train.mini_batch()
-                        train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:args.dropout})
+                        train_step.run(feed_dict={drug:drug_smiles, cell:cell_muts, scores:real_values, keep_prob:params["dropout"]})
                         step += 1
                     valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc = sess.run([loss, r_square, pearson, rmse, spearman], feed_dict={drug:valid_drugs, cell:valid_cells, scores:valid_values, keep_prob:1})
                     print("epoch: %d, loss: %g r2: %g pearson: %g rmse: %g, spearman: %g" % (epoch, valid_loss, valid_r2, valid_pcc, valid_rmse, valid_scc))
@@ -469,10 +433,10 @@ def run(params: Dict):
                     epoch += 1
                     epoch_end_time = time.time()
                     epoch_time.append(epoch_end_time - epoch_start_time)
-                    if epoch == args.epochs:
+                    if epoch == params["epochs"]:
                         break
 
-        if args.epochs>0 and args.es_epochs>0:
+        if params["epochs"]>0 and params["es_epochs"]>0:
             print(f"Total number of epochs: {epoch}.")
         else:
             print(f"Total number of epochs: {epoch+1}.")
@@ -480,21 +444,22 @@ def run(params: Dict):
         print(f"Runtime for first epoch: {epoch_time[0]}")
         print(f"Average runtime per epoch: {sum(epoch_time)/len(epoch_time)}")
     
+    """
     # Supervisor HPO
     if len(val_scores) > 0:
         print("\nIMPROVE_RESULT val_loss:\t{}\n".format(val_scores["val_loss"]))
-        with open(Path(args.output_dir) / "scores.json", "w", encoding="utf-8") as f:
+        with open(Path(params["output_dir"]) / "scores.json", "w", encoding="utf-8") as f:
             json.dump(val_scores, f, ensure_ascii=False, indent=4)
     else:
         print("The val_loss did not improve from the min_loss after training. Results and model not saved.")
-
+    """
     # ------------------------------------------------------
     # Load best model and compute predictions
     # ------------------------------------------------------
     # Load the best saved model (as determined based on val data)
     # Load metagraph and create session
-    print(modelpath)
-    graph, sess, saver = load_graph(os.path.join(modelpath, args.model_weights_file))
+    print(f"This is the path to model: {modelpath}")
+    graph, sess, saver = load_graph(os.path.join(modelpath, "result.ckpt.meta"))
 
     # Load checkpoint
     with graph.as_default():
@@ -539,32 +504,46 @@ def run(params: Dict):
     # [Req] Save raw predictions in dataframe
     # ------------------------------------------------------
     frm.store_predictions_df(
-        params,
-        y_true=val_true, y_pred=val_pred, stage="val",
-        outdir=params["model_outdir"]
+        y_true=val_true,
+        y_pred=val_pred,
+        stage="val",
+        y_col_name=params["y_col_name"],
+        output_dir=params["output_dir"]
     )
     # ------------------------------------------------------
     # [Req] Compute performance scores
     # ------------------------------------------------------
-    val_scores = frm.compute_performace_scores(
-        params,
-        y_true=val_true, y_pred=val_pred, stage="val",
-        outdir=params["model_outdir"], metrics=metrics_list
+    val_scores = frm.compute_performance_scores(
+        y_true=val_true,
+        y_pred=val_pred,
+        stage="val",
+        metric_type=params["metric_type"],
+        output_dir=params["output_dir"]
     )
         
     return val_scores
+    
+def initialize_parameters():
+    """This initialize_parameters() is define this way to support Supervisor
+    workflows such as HPO.
+
+    Returns:
+        dict: dict of IMPROVE/CANDLE parameters and parsed values.
+    """
+    # [Req] Initialize parameters
+    cfg = DRPTrainConfig()
+    params = cfg.initialize_parameters(
+        pathToModelDir=filepath,
+        default_config="tcnns_params.txt",
+        additional_definitions=train_params)
+    return params
+
 
 # [Req]
 def main(args):
     start = time.time()
     # [Req]
-    additional_definitions = preprocess_params + train_params
-    params = frm.initialize_parameters(
-        filepath,
-        default_model="tcnns_csa_params.txt",
-        additional_definitions=additional_definitions,
-        required=None,
-    )
+    params = initialize_parameters()
     val_scores = run(params)
     print("\nFinished model training.")
     end = time.time()

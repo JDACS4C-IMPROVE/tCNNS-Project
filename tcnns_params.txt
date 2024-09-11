@@ -1,0 +1,44 @@
+[DEFAULT]
+use_original_data = False
+model_name = tCNNS
+
+[Preprocess]
+train_split_file = CCLE_split_0_train.txt
+val_split_file = CCLE_split_0_val.txt
+test_split_file = CCLE_split_0_test.txt
+data_format = .npy
+y_data_files = [["response.tsv"]]
+x_data_canc_files = [["cancer_discretized_copy_number.tsv",["Gene_Symbol"]],["cancer_mutation_count.tsv",["Gene_Symbol"]]]
+x_data_drug_files = [["drug_SMILES.tsv"]]
+gdsc_gene_file = gdsc_genes.csv
+
+[Train]
+dense = [1024, 1024, 1024]
+learning_rate = 0.0001
+batch_size = 100
+es_epochs = 5
+epochs = 10
+dropout = 0.5
+min_loss = 100
+bias_constant = 0.1
+std_dev = 0.1
+conv_stride = 1
+drug_conv_width = [7, 7, 7]
+drug_conv_out = [40, 80, 60]
+drug_pool = [3, 3, 3]
+cell_conv_width = [7, 7, 7]
+cell_conv_out = [40, 80, 60]
+cell_pool = [3, 3, 3]
+train_size = 0.8
+val_size = 0.9
+out_activation = None
+drug_id = drug_names
+cell_id = cell_ids
+norm = True
+test_indices_file = None
+
+[Infer]
+model_weights_file = result.ckpt.meta
+norm = True
+model_file_name = model/result
+model_file_format = .ckpt.meta

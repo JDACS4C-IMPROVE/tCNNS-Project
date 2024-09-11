@@ -1,10 +1,56 @@
-import os
-import candle
+"""
+Model-specific params (Model: tCNNS)
+If no params are required by the model, then it should be an empty list.
+"""
 
-file_path = os.path.dirname(os.path.realpath(__file__))
+preprocess_params = [
+    {   "name": "original_data",
+        "type": str, 
+        "help": "file of compressed original data before preprocessing",
+    },
+    {   "name": "data_subdir",
+        "type": str, 
+        "help": "name of folder containing preprocessed data",
+    },
+    {   "name": "raw_data_subdir",
+        "type": str, 
+        "help": "name of folder containing raw data",
+    },
+    {   "name": "raw_genetic_features_file",
+        "type": str, 
+        "help": "name of file containing genetic features (mutation state and copy number alteration) in GDSC format",
+    },  
+    {   "name": "raw_drug_features_file",
+        "type": str, 
+        "help": "name of file containing drug features (SMILES)",
+    },  
+    {   "name": "raw_drug_response_file",
+        "type": str, 
+        "help": "name of file containing drug response data",
+    },
+        {
+        "name": "drug_id",
+        "type": str,
+        "help": "drug identifier",
+    },
+        {
+        "name": "cell_id",
+        "type": str,
+        "help": "cell line identifier",
+    },
+    {
+        "name": "gdsc_gene_file",
+        "type": str,
+        "help": "file of genes corresponding to GDSC genetic features",
+    },
+    {
+        "name": "use_original_data",
+        "type": bool,
+        "help": "indicates whether to use original data and processing code specific to this data",
+    },   
+]
 
-# additional definitions
-additional_definitions = [
+train_params = [
     {   "name": "drug_conv_width",
         "type": int,
         "nargs": "+",
@@ -62,7 +108,12 @@ additional_definitions = [
     {   "name": "cell_file",
         "type": str, 
         "help": "file of preprocessed cell data",
-    },  
+    }, 
+    {   "name": "dense",
+        "type": int,
+        "nargs": "+", 
+        "help": "number of nodes for each dense layer",
+    }, 
     {   "name": "drug_file",
         "type": str, 
         "help": "file of preprocessed drug data",
@@ -75,30 +126,7 @@ additional_definitions = [
         "type": str, 
         "help": "file of compressed preprocessed data",
     },
-    {   "name": "original_data",
-        "type": str, 
-        "help": "file of compressed original data before preprocessing",
-    },
-    {   "name": "data_subdir",
-        "type": str, 
-        "help": "name of folder containing preprocessed data",
-    },
-    {   "name": "raw_data_subdir",
-        "type": str, 
-        "help": "name of folder containing raw data",
-    },
-    {   "name": "raw_genetic_features_file",
-        "type": str, 
-        "help": "name of file containing genetic features (mutation state and copy number alteration) in GDSC format",
-    },  
-    {   "name": "raw_drug_features_file",
-        "type": str, 
-        "help": "name of file containing drug features (SMILES)",
-    },  
-    {   "name": "raw_drug_response_file",
-        "type": str, 
-        "help": "name of file containing drug response data",
-    },
+    
     {   "name": "es_epochs",
         "type": int, 
         "help": "value for the number of epochs to use to stop training if the RMSE on the validation set does not decrease",
@@ -135,45 +163,58 @@ additional_definitions = [
         "help": "file of trained model's weights",
     },
     {
-        "name": "drug_id",
-        "type": str,
-        "help": "drug identifier",
-    },
-        {
-        "name": "cell_id",
-        "type": str,
-        "help": "cell line identifier",
+        "name": "rng_seed",
+        "type": int,
+        "help": "random seed",
+        "default": 123,
     },
     {
-        "name": "gdsc_gene_file",
+        "name": "out_activation",
         "type": str,
-        "help": "file of genes corresponding to GDSC genetic features",
+        "help": "activation function of output layer",
+    },
+    {
+        "name": "dropout",
+        "type": float,
+        "help": "percentage of nodes to randomly drop out during training",
     },
 ]
 
-# required definitions
-required = [
-    "data_url",
-    "model_name",
-    "dense",
-    "epochs",
-    "batch_size",
-    "dropout",
-    "learning_rate",
-    "output_dir",
-    "ckpt_directory",
-    "out_activation"
+infer_params = [
+    {
+        "name": "use_original_data",
+        "type": bool,
+        "help": "indicates whether to use original data and processing code specific to this data",
+    }, 
+    {   
+        "name": "data_subdir",
+        "type": str, 
+        "help": "name of folder containing preprocessed data",
+    }, 
+    {   
+        "name": "cell_file",
+        "type": str, 
+        "help": "file of preprocessed cell data",
+    }, 
+    {   
+        "name": "drug_file",
+        "type": str, 
+        "help": "file of preprocessed drug data",
+    },  
+    {   
+        "name": "response_file",
+        "type": str, 
+        "help": "file of preprocessed response data",
+    },
+    {
+        "name": "test_indices_file",
+        "type": str,
+        "help": "file containing indices for test split of original data",
+    },
+    {
+        "name": "model_weights_file",
+        "type": str,
+        "help": "file of trained model's weights",
+    },
+    
 ]
-
-# initialize class
-class tCNNS(candle.Benchmark):
-    def set_locals(self):
-        """
-        Functionality to set variables specific for the benchmark
-        - required: set of required parameters for the benchmark.
-        - additional_definitions: list of dictionaries describing the additional parameters for the benchmark.
-        """
-        if required is not None: 
-            self.required = set(required)
-        if additional_definitions is not None:
-            self.additional_definitions = additional_definitions
