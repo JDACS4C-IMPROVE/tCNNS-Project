@@ -24,8 +24,8 @@ def build_split_fname(source: str, split: int, phase: str):
     """ Build split file name. If file does not exist continue """
     return f"{source_data_name}_split_{split}_{phase}.txt"
 
-def save_captured_output(result, process, MAIN_CSA_OUTDIR, source_data_name, target_data_name, split):
-    result_file_name_stdout = MAIN_CSA_OUTDIR / "logs" / f"{source_data_name}-{target_data_name}-{split}-{process}-log.txt"
+def save_captured_output(result, process, MAIN_LOG_DIR, source_data_name, target_data_name, split):
+    result_file_name_stdout = MAIN_LOG_DIR / f"{source_data_name}-{target_data_name}-{split}-{process}-log.txt"
     with open(result_file_name_stdout, 'w') as file:
         file.write(result.stdout)
 
@@ -84,11 +84,13 @@ MAIN_CSA_OUTDIR = Path(params["csa_outdir"]) # main output dir
 MAIN_ML_DATA_DIR = MAIN_CSA_OUTDIR / 'ml_data' # output_dir_pp, input_dir_train, input_dir_infer
 MAIN_MODEL_DIR = MAIN_CSA_OUTDIR / 'models' # output_dir_train, input_dir_infer
 MAIN_INFER_DIR = MAIN_CSA_OUTDIR / 'infer' # output_dir infer
+MAIN_LOG_DIR = MAIN_CSA_OUTDIR / 'logs'
 print("Created directory names")
 print("MAIN_CSA_OUTDIR: ", MAIN_CSA_OUTDIR)
 print("MAIN_ML_DATA_DIR: ", MAIN_ML_DATA_DIR)
 print("MAIN_MODEL_DIR: ", MAIN_MODEL_DIR)
 print("MAIN_INFER_DIR: ", MAIN_INFER_DIR)
+print("MAIN_LOG_DIR: ", MAIN_LOG_DIR)
 # Note! Here input_dir is the location of benchmark data
 # TODO Should we set input_dir (and output_dir) for each models scrit?
 splits_dir = Path(params['input_dir']) / params['splits_dir']
@@ -184,7 +186,7 @@ for source_data_name in source_datasets:
             ]
             result = subprocess.run(preprocess_run, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, universal_newlines=True)
             print(f"returncode = {result.returncode}")
-            save_captured_output(result, "preprocess", MAIN_CSA_OUTDIR, source_data_name, target_data_name, split)
+            save_captured_output(result, "preprocess", MAIN_LOG_DIR, source_data_name, target_data_name, split)
             timer_preprocess.display_timer(print_fn)
 
             # p2 (p1): Train model
@@ -204,7 +206,7 @@ for source_data_name in source_datasets:
                 ]
                 result = subprocess.run(train_run, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, universal_newlines=True)
                 print(f"returncode = {result.returncode}")
-                save_captured_output(result, "train", MAIN_CSA_OUTDIR, source_data_name, "none", split)
+                save_captured_output(result, "train", MAIN_LOG_DIR, source_data_name, "none", split)
                 timer_train.display_timer(print_fn)
 
             # Infer
@@ -221,7 +223,7 @@ for source_data_name in source_datasets:
             ]
             result = subprocess.run(infer_run, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, universal_newlines=True)
             print(f"returncode = {result.returncode}")
-            save_captured_output(result, "infer", MAIN_CSA_OUTDIR, source_data_name, target_data_name, split)
+            save_captured_output(result, "infer", MAIN_LOG_DIR, source_data_name, target_data_name, split)
             timer_infer.display_timer(print_fn)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

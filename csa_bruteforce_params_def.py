@@ -44,10 +44,6 @@ csa_bruteforce_params = [
      "default": 10,
      "help": "Number of epochs"
     },
-    {"name": "reserved_system",
-     "type": str2bool,
-     "default": False,
-     "help": "If the system reserves GPUs. False for lambda and True for slurm systems."
-    },
+
     
 ]
