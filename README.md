@@ -75,7 +75,7 @@ git checkout develop
 ### 2. Set computational environment
 Create conda env 
 ```
-conda create -n tcnns python=3.6.9 tensorflow-gpu=1.15 -y
+conda create -n tcnns python=3.6.9 tensorflow-gpu=1.15 pandas pyyaml scikit-learn -y
 conda activate tcnns
 ```
 
