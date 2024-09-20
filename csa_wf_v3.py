@@ -72,8 +72,8 @@ print_fn(f"File path: {fdir}")
 
 ### Source and target data sources
 ## Set 1 - full analysis
-# source_datasets = ["CCLE", "CTRPv2", "gCSI", "GDSCv1", "GDSCv2"]
-# target_datasets = ["CCLE", "CTRPv2", "gCSI", "GDSCv1", "GDSCv2"]
+source_datasets = ["CCLE", "CTRPv2", "gCSI", "GDSCv1", "GDSCv2"]
+target_datasets = ["CCLE", "CTRPv2", "gCSI", "GDSCv1", "GDSCv2"]
 ## Set 2 - smaller datasets
 # source_datasets = ["CCLE", "gCSI", "GDSCv1", "GDSCv2"]
 # target_datasets = ["CCLE", "gCSI", "GDSCv1", "GDSCv2"]
@@ -92,19 +92,19 @@ print_fn(f"File path: {fdir}")
 # source_datasets = ["GDSCv1"]
 # target_datasets = ["CCLE"]
 ## Set 6 - Table 4
-source_datasets = ["GDSCv1"]
-target_datasets = ["GDSCv1", "CCLE", "gCSI", "CTRPv2", "GDSCv2"]
+# source_datasets = ["GDSCv1"]
+# target_datasets = ["GDSCv1", "CCLE", "gCSI", "CTRPv2", "GDSCv2"]
 
 only_cross_study = False
 # only_cross_study = True
 
 ## Splits
-# split_nums = []  # all splits
+split_nums = []  # all splits
 # split_nums = [0]
 # split_nums = [4, 7]
 # split_nums = [1, 4, 7]
 # split_nums = [1, 3, 5, 7, 9]
-split_nums = [4]
+# split_nums = [4]
 
 def build_split_fname(source: str, split: int, phase: str):
     """ Build split file name. If file does not exist continue """
