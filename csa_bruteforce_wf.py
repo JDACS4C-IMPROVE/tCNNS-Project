@@ -8,7 +8,6 @@ from time import time
 from pathlib import Path
 
 import pandas as pd
-#import torch
 
 
 # IMPROVE imports
@@ -26,7 +25,7 @@ def build_split_fname(source: str, split: int, phase: str):
     return f"{source_data_name}_split_{split}_{phase}.txt"
 
 def save_captured_output(result, process, MAIN_CSA_OUTDIR, source_data_name, target_data_name, split):
-    result_file_name_stdout = MAIN_CSA_OUTDIR / f"{source_data_name}-{target_data_name}-{split}-{process}-log.txt"
+    result_file_name_stdout = MAIN_CSA_OUTDIR / "logs" / f"{source_data_name}-{target_data_name}-{split}-{process}-log.txt"
     with open(result_file_name_stdout, 'w') as file:
         file.write(result.stdout)
 
@@ -68,9 +67,6 @@ params = cfg.initialize_parameters(
     required=None
 )
 print("Loaded params")
-if not params["reserved_system"]:
-    torch.Tensor([0]).to(params["cuda_name"])
-    print("Reserved GPU: ", params["cuda_name"])
 
 # Model scripts
 model_name = params["model_name"]
@@ -206,10 +202,9 @@ for source_data_name in source_datasets:
                       "--cuda_name", cuda_name, # DL-specific
                       "--y_col_name", y_col_name
                 ]
-                result = subprocess.run(train_run, capture_output=True,
-                                        text=True)
+                result = subprocess.run(train_run, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, universal_newlines=True)
                 print(f"returncode = {result.returncode}")
-                #save_captured_output(result, "train", MAIN_CSA_OUTDIR, source_data_name, "none", split)
+                save_captured_output(result, "train", MAIN_CSA_OUTDIR, source_data_name, "none", split)
                 timer_train.display_timer(print_fn)
 
             # Infer
@@ -224,10 +219,9 @@ for source_data_name in source_datasets:
                   "--y_col_name", y_col_name,
                   "--calc_infer_scores", "true"
             ]
-            result = subprocess.run(infer_run, capture_output=True,
-                                    text=True)
+            result = subprocess.run(infer_run, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, universal_newlines=True)
             print(f"returncode = {result.returncode}")
-            #save_captured_output(result, "infer", MAIN_CSA_OUTDIR, source_data_name, target_data_name, split)
+            save_captured_output(result, "infer", MAIN_CSA_OUTDIR, source_data_name, target_data_name, split)
             timer_infer.display_timer(print_fn)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
