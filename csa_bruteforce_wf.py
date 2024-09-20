@@ -222,14 +222,23 @@ for source_data_name in source_datasets:
             # p3 (p1, p2): Inference
             timer_infer = Timer()
             print_fn("\nInfer")
-            infer_run = ["python", infer_python_script,
-                  "--input_data_dir", str(ml_data_dir),
-                  "--input_model_dir", str(model_dir),
-                  "--output_dir", str(infer_dir),
-                  "--cuda_name", cuda_name, # DL-specific
-                  "--y_col_name", y_col_name,
-                  "--calc_infer_scores", "true"
-            ]
+            if params["uses_cuda_name"]:
+                infer_run = ["python", infer_python_script,
+                    "--input_data_dir", str(ml_data_dir),
+                    "--input_model_dir", str(model_dir),
+                    "--output_dir", str(infer_dir),
+                    "--cuda_name", cuda_name, # DL-specific
+                    "--y_col_name", y_col_name,
+                    "--calc_infer_scores", "true"
+                ]
+            else:
+                infer_run = ["python", infer_python_script,
+                    "--input_data_dir", str(ml_data_dir),
+                    "--input_model_dir", str(model_dir),
+                    "--output_dir", str(infer_dir),
+                    "--y_col_name", y_col_name,
+                    "--calc_infer_scores", "true"
+                ]
             result = subprocess.run(infer_run, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, universal_newlines=True)
             print(f"returncode = {result.returncode}")
             save_captured_output(result, "infer", MAIN_LOG_DIR, source_data_name, target_data_name, split)
