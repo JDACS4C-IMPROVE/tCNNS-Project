@@ -44,6 +44,10 @@ csa_bruteforce_params = [
      "default": 10,
      "help": "Number of epochs"
     },
-
+    {"name": "uses_cuda_name",
+     "type": str2bool,
+     "default": True,
+     "help": "Change to false if the model doesn't have a cuda_name parameter."
+    },
     
 ]

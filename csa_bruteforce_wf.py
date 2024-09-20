@@ -198,13 +198,21 @@ for source_data_name in source_datasets:
                 print_fn("\nTrain")
                 print_fn(f"ml_data_dir: {ml_data_dir}")
                 print_fn(f"model_dir:   {model_dir}")
-                train_run = ["python", train_python_script,
-                      "--input_dir", str(ml_data_dir),
-                      "--output_dir", str(model_dir),
-                      "--epochs", str(epochs),  # DL-specific
-                      "--cuda_name", cuda_name, # DL-specific
-                      "--y_col_name", y_col_name
-                ]
+                if params["uses_cuda_name"]:
+                    train_run = ["python", train_python_script,
+                        "--input_dir", str(ml_data_dir),
+                        "--output_dir", str(model_dir),
+                        "--epochs", str(epochs),  # DL-specific
+                        "--cuda_name", cuda_name, # DL-specific
+                        "--y_col_name", y_col_name
+                    ]
+                else:
+                    train_run = ["python", train_python_script,
+                        "--input_dir", str(ml_data_dir),
+                        "--output_dir", str(model_dir),
+                        "--epochs", str(epochs),  # DL-specific
+                        "--y_col_name", y_col_name
+                    ]
                 result = subprocess.run(train_run, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, universal_newlines=True)
                 print(f"returncode = {result.returncode}")
                 save_captured_output(result, "train", MAIN_LOG_DIR, source_data_name, "none", split)
