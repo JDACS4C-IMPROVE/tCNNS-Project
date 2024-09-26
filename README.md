@@ -68,7 +68,7 @@ csa_data/raw_data/
 ```
 git clone https://github.com/JDACS4C-IMPROVE/tCNNS-Project
 cd tCNNS-Project
-git checkout develop
+git checkout v010_202409XX
 ```
 
 
@@ -87,7 +87,7 @@ source setup_improve.sh
 
 This will:
 1. Download cross-study analysis (CSA) benchmark data into `./csa_data/`.
-2. Clone IMPROVE repo (checkout `develop`) outside the tCNNS model repo.
+2. Clone IMPROVE repo (checkout `v010_202409XX`) outside the tCNNS model repo.
 3. Set up PYTHONPATH (adds IMPROVE repo).
 
 
