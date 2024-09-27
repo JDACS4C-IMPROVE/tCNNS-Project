@@ -28,6 +28,7 @@ improve_lib_path=$PWD/IMPROVE
 improve_branch="develop"
 if [ -d $improve_lib_path ]; then
   echo "IMPROVE repo exists in ${improve_lib_path}"
+  git checkout $improve_branch
 else
     # git clone https://github.com/JDACS4C-IMPROVE/IMPROVE
     git clone -b $improve_branch https://github.com/JDACS4C-IMPROVE/IMPROVE
