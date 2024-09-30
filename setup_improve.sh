@@ -26,17 +26,25 @@ export IMPROVE_DATA_DIR="./$data_dir/"
 cd ../
 improve_lib_path=$PWD/IMPROVE
 # improve_branch="develop"
-improve_branch="v010_202409XX"
+improve_branch="v0.1.0-2024-09-27"
 if [ -d $improve_lib_path ]; then
     echo "IMPROVE repo exists in ${improve_lib_path}"
 else
     git clone https://github.com/JDACS4C-IMPROVE/IMPROVE
 fi
-git checkout -f $improve_branch
-cd $model_name
+
+cd IMPROVE
+branch_name="$(git branch --show-current)" 
+if [ "$branch_name" == "$improve_branch" ]; then
+    echo "On the correct branch, ${improve_branch}"
+else
+    git checkout $improve_branch
+fi    
+cd ../$model_name
 
 # Env var PYTHOPATH
-export PYTHONPATH=$PYTHONPATH:$improve_lib_path
+#export PYTHONPATH=$PYTHONPATH:$improve_lib_path
+export PYTHONPATH=$improve_lib_path
 
 echo
 echo "IMPROVE_DATA_DIR: $IMPROVE_DATA_DIR"
