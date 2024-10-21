@@ -81,7 +81,7 @@ def smiles_chars(drug_df):
     c_chars = charsets(drug_array)
     # get length of longest SMILES string
     c_length = max(map(len, map(string2smiles_list, list(drug_array[:, 1]))))
-    return c_chars, c_length
+    return sorted(c_chars), c_length
 
 def save_drug_smiles_onehot(data_dir, raw_data_subdir, raw_drug_features_file, data_subdir, drug_file, use_original_data=False):
     '''function for original data'''
