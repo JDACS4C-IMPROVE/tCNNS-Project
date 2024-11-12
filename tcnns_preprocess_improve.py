@@ -136,7 +136,8 @@ def save_drug_smiles_onehot_csa(filepath, data_subdir, drug_df, c_chars, c_lengt
 
     # save as npy file
     drug_file_name = f"{label}_drug_onehot_smiles.npy"
-    np.save(os.path.join(filepath, data_subdir, drug_file_name), save_dict)
+    #np.save(os.path.join(filepath, data_subdir, drug_file_name), save_dict)
+    np.save(os.path.join(data_subdir, drug_file_name), save_dict)
     print("Saving preprocessed drug {} data...".format(label))
     return drug_cids
 
@@ -253,7 +254,8 @@ def save_cell_mut_matrix_csa(filepath, data_subdir, gf_df, label="train", sample
 
     # save as npy file
     cell_file_name = f"{label}_cell_mut_matrix.npy"
-    np.save(os.path.join(filepath, data_subdir, cell_file_name), save_dict)
+    #np.save(os.path.join(filepath, data_subdir, cell_file_name), save_dict)
+    np.save(os.path.join(data_subdir, cell_file_name), save_dict)
     print("Saving preprocessed omics {} data...".format(label))
     return cell_id
 
@@ -461,7 +463,8 @@ def save_drug_cell_matrix_csa(filepath, data_subdir, rs_df, d_id, c_id, label="t
     save_dict[response_label] = sub_matrix
     # save as npy file
     response_file_name = f"{label}_drug_cell_interaction.npy"
-    np.save(os.path.join(filepath, data_subdir, response_file_name), save_dict)
+    #np.save(os.path.join(filepath, data_subdir, response_file_name), save_dict)
+    np.save(os.path.join(data_subdir, response_file_name), save_dict)
     print("Saving preprocessed response {} data...".format(label))
 
 
