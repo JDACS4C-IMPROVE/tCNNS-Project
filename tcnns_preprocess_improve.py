@@ -567,7 +567,7 @@ def run(params: Dict):
             ydf["temp_sample_id"] = ydf[params["canc_col_name"]] + "_" + ydf["study"].astype(str)
             # Sub-select desired response column (y_col_name)
             # And reduce response dataframe to 4 columns: drug_id, cell_id, temp_cell_id, and selected drug_response
-            ydf = ydf[[params["drug_col_name"], params["canc_col_name"], "temp_sample_id", params["y_col_name"]]]
+            #ydf = ydf[[params["drug_col_name"], params["canc_col_name"], "temp_sample_id", params["y_col_name"]]]
             # remove any pairs with missing response values
             ydf = ydf.dropna(subset=[params["y_col_name"]])
             print("Number of samples and drugs with nonmissing response data:")
@@ -608,7 +608,7 @@ def run(params: Dict):
             # print(data_fname)
             
             # [Req] Save y dataframe for the current stage
-            frm.save_stage_ydf(ydf, stage, params["output_dir"])
+            frm.save_stage_ydf(ydf.drop("temp_sample_id", axis=1), stage, params["output_dir"])
                    
     end = time.time()
     print("Time to preprocess: {}".format(end-start))
