@@ -127,7 +127,7 @@ train_params = [
         "help": "file of compressed preprocessed data",
     },
     
-    {   "name": "es_epochs",
+    {   "name": "patience",
         "type": int, 
         "help": "value for the number of epochs to use to stop training if the RMSE on the validation set does not decrease",
     },     
