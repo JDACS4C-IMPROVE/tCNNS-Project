@@ -79,15 +79,6 @@ def run(params: Dict):
         print("GPU not available")
     
     # ------------------------------------------------------
-    # [Req] Create output dir
-    # ------------------------------------------------------
-    frm.create_outdir(outdir=params["output_dir"])
-
-    # ------------------------------------------------------
-    # [Req] Create data name for test set
-    # ------------------------------------------------------
-    
-    # ------------------------------------------------------
     # Load model input data (ML data)
     # ------------------------------------------------------
     # Load processed data and create batch object

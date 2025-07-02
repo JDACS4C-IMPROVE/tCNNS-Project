@@ -155,9 +155,8 @@ def run(params: Dict):
         print("GPU not available")
         
     # ------------------------------------------------------
-    # [Req] Create output dir and build model path
+    # [Req] Build model path
     # ------------------------------------------------------
-    frm.create_outdir(outdir=params["output_dir"])
 
     # Build model path
     modelpath = frm.build_model_path(

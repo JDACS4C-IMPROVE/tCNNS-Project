@@ -444,17 +444,17 @@ def run(params: Dict):
         print("\nLoading omics data...")
         genes_df = pd.read_csv(os.path.join(filepath, params["gdsc_gene_file"])) # load GDSC genetic features
         # Discretized copy number data
-        dis_copy = drp.get_x_data(file = params['cell_cnv_file'], 
+        dis_copy = frm.get_x_data(file = params['cell_cnv_file'], 
                             benchmark_dir = params['input_dir'], 
                             column_name = params['canc_col_name'])
         # Mutation count data
-        mut_count = drp.get_x_data(file = params['cell_mutation_file'], 
+        mut_count = frm.get_x_data(file = params['cell_mutation_file'], 
                             benchmark_dir = params['input_dir'], 
                             column_name = params['canc_col_name'])
 
         print("\nLoading drugs data...")
         # Drug smiles data
-        smi = drp.get_x_data(file = params['drug_smiles_file'], 
+        smi = frm.get_x_data(file = params['drug_smiles_file'], 
                     benchmark_dir = params['input_dir'], 
                     column_name = params['drug_col_name'])
         # ------------------------------------------------------
@@ -470,9 +470,9 @@ def run(params: Dict):
             # [Req] Load response data
             # --------------------------------
             print("\nLoading response data for {}...".format(stage))
-            rsp = drp.get_response_data(split_file=split_file, 
+            rsp = frm.get_y_data(split_file=split_file, 
                                 benchmark_dir=params['input_dir'], 
-                                response_file=params['y_data_file'])
+                                y_data_file=params['y_data_file'])
             # --------------------------------
             # [Req] Build data name
             # --------------------------------
@@ -484,19 +484,19 @@ def run(params: Dict):
             # (i.e., intersection of samples)
             
             # Filter responses to include only samples that have mutation count data
-            ydf = drp.get_response_with_features(rsp, mut_count, params["canc_col_name"])
+            ydf = frm.get_y_data_with_features(rsp, mut_count, params["canc_col_name"])
             print("Filtered response data to retain only samples with mutation count features:")
             print(ydf.shape)
             print("Unique cancer samples and drugs:", ydf[[params["canc_col_name"], params["drug_col_name"]]].nunique())
 
             # Further filter to retain only samples with copy number variation data
-            ydf = drp.get_response_with_features(ydf, dis_copy, params["canc_col_name"])
+            ydf = frm.get_y_data_with_features(ydf, dis_copy, params["canc_col_name"])
             print("Further filtered to retain only samples with CNV features:")
             print(ydf.shape)
             print("Unique cancer samples and drugs:", ydf[[params["canc_col_name"], params["drug_col_name"]]].nunique())
 
             # Further filter to retain only samples with drug SMILES data
-            ydf = drp.get_response_with_features(ydf, smi, params["drug_col_name"])
+            ydf = frm.get_y_data_with_features(ydf, smi, params["drug_col_name"])
             print("Further filtered to retain only drugs with SMILES features:")
             print(ydf.shape)
             print("Unique cancer samples and drugs:", ydf[[params["canc_col_name"], params["drug_col_name"]]].nunique())
@@ -516,7 +516,7 @@ def run(params: Dict):
             # -------------------
             # Get SMILES data per drug
             #smi_subset = smi[smi[params["drug_col_name"]].isin(list(ydf[params["drug_col_name"]].unique()))]
-            smi_subset = drp.get_features_in_response(smi, ydf, params['drug_col_name']).reset_index()
+            smi_subset = frm.get_features_in_y_data(smi, ydf, params['drug_col_name']).reset_index()
             # Get unique characters and length of longest SMILES string in entire drug dataset
             tr_chars, tr_length = smiles_chars(smi.reset_index())
             # One hot encode SMILES data and save file            
@@ -526,9 +526,9 @@ def run(params: Dict):
             # Prep omics data
             # ----------------
             # Get mutation count data in GDSC format
-            mut = get_mutations(drp.get_features_in_response(mut_count, ydf, params['canc_col_name']).reset_index(), genes_df, params["canc_col_name"])
+            mut = get_mutations(frm.get_features_in_y_data(mut_count, ydf, params['canc_col_name']).reset_index(), genes_df, params["canc_col_name"])
             # Get discreted copy number data in GDSC format
-            cna = get_copy_number_alterations(drp.get_features_in_response(dis_copy, ydf, params['canc_col_name']).reset_index(), genes_df, params["canc_col_name"])
+            cna = get_copy_number_alterations(frm.get_features_in_y_data(dis_copy, ydf, params['canc_col_name']).reset_index(), genes_df, params["canc_col_name"])
             # Combine and sort by sample ID and genetic feature
             gf = pd.concat([mut, cna]).sort_values([params["canc_col_name"], 'genetic_feature'])
             # Create sample and mutation matrix and save file
