@@ -473,6 +473,7 @@ def run(params: Dict):
             rsp = frm.get_y_data(split_file=split_file, 
                                 benchmark_dir=params['input_dir'], 
                                 y_data_file=params['y_data_file'])
+            rsp = rsp.dropna(subset=[params['y_col_name']])
             # --------------------------------
             # [Req] Build data name
             # --------------------------------
