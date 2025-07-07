@@ -56,7 +56,7 @@ csa_data/raw_data/
 + `tcnns_preprocess_improve.py` - takes benchmark data files and transforms them into files for training and inference
 + `tcnns_train_improve.py` - trains the tCNNS model
 + `tcnns_infer_improve.py` - runs inference with the trained tCNNS model
-+ `tcnns_params.txt` - default parameter file (parameter values specified in this file override the defaults)
++ `tcnns_params.ini` - default parameter file (parameter values specified in this file override the defaults)
 + `model_params_def.py` - definitions of parameters that are specific to the model
 
 
